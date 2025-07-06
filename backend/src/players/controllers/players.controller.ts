@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, Put, Delete, ParseIntPipe } from '@nestjs/common';
 import { PlayersService } from '../players.service';
-import { Player } from '../entities/player.entity';
+import { CreatePlayerDto } from '../dto/create-player.dto';
+import { UpdatePlayerDto } from '../dto/update-player.dto';
 
 @Controller('players')
 export class PlayersController {
@@ -8,8 +9,8 @@ export class PlayersController {
 
   // CREATE
   @Post()
-  create(@Body() playerDto: Partial<Player>) {
-    return this.playersService.create(playerDto);
+  create(@Body() createPlayerDto: CreatePlayerDto) {
+    return this.playersService.create(createPlayerDto);
   }
 
   // READ ALL
@@ -26,8 +27,12 @@ export class PlayersController {
 
   // UPDATE
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateDto: Partial<Player>) {
-    return this.playersService.update(id, updateDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updatePlayerDto: UpdatePlayerDto) {
+    console.log('=== CONTROLLER UPDATE PLAYER DEBUG ===');
+    console.log('Request ID:', id);
+    console.log('Request Body:', updatePlayerDto);
+    console.log('=== END CONTROLLER DEBUG ===');
+    return this.playersService.update(id, updatePlayerDto);
   }
 
   // DELETE

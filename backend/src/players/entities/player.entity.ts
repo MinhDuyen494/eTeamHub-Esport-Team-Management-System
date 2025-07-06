@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-
+import { User } from '../../users/entities/user.entity';
+import { OneToOne, JoinColumn } from 'typeorm';
 @Entity('players') // tên bảng trong database là 'players'
 export class Player {
 
@@ -30,4 +31,8 @@ export class Player {
   // Thời gian cập nhật gần nhất hồ sơ tuyển thủ (tự động)
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToOne(() => User, user => user.player) // Liên kết tới User
+  @JoinColumn() // Tạo ra cột 'userId' trong bảng 'players'
+  user: User;
 }

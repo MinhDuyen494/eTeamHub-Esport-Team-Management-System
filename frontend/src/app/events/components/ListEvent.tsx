@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import api from "@/utils/api";
+import EditEventForm from "./EditEventForm";
 
 type Event = {
   id: number;
@@ -16,6 +17,8 @@ type Event = {
 export default function ListEvent({ reload, onDeleted, onUpdated }: { reload: number, onDeleted: () => void, onUpdated: () => void }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
 
   const fetchEvents = () => {
     setLoading(true);
@@ -35,7 +38,9 @@ export default function ListEvent({ reload, onDeleted, onUpdated }: { reload: nu
     }
   };
 
-  // Nâng cao: thêm form sửa EditEventForm ở đây nếu muốn
+    const handleEdit = (event: Event) => {
+    setEditingEvent(event);
+  };
 
   return (
     <div>
@@ -64,7 +69,9 @@ export default function ListEvent({ reload, onDeleted, onUpdated }: { reload: nu
                 <td className="p-2">{e.type}</td>
                 <td className="p-2">{e.note}</td>
                 <td className="p-2">
-                  {/* Thêm nút Sửa ở đây khi cần */}
+                  <button onClick={() => handleEdit(e)} className="text-blue-600 hover:underline mr-3">
+                    Sửa
+                  </button>
                   <button onClick={() => handleDelete(e.id, e.title)} className="text-red-600 hover:underline">
                     Xóa
                   </button>
@@ -73,6 +80,16 @@ export default function ListEvent({ reload, onDeleted, onUpdated }: { reload: nu
             ))}
           </tbody>
         </table>
+      )}
+      {editingEvent && (
+        <EditEventForm
+          event={editingEvent}
+          onClose={() => setEditingEvent(null)}
+          onUpdated={() => {
+            setEditingEvent(null);
+            onUpdated();
+          }}
+        />
       )}
     </div>
   );

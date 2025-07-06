@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import api from "@/utils/api";
+import EditPlayerForm from "./EditPlayerForm";
 
 type Player = {
   id: number;
@@ -12,9 +13,10 @@ type Player = {
   updatedAt: string;
 };
 
-export default function ListPlayer({ reload, onDeleted }: { reload: number, onDeleted: () => void }) {
+export default function ListPlayer({ reload, onDeleted, onUpdated }: { reload: number, onDeleted: () => void, onUpdated: () => void }) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
 
   const fetchPlayers = () => {
     setLoading(true);
@@ -25,13 +27,17 @@ export default function ListPlayer({ reload, onDeleted }: { reload: number, onDe
 
   useEffect(() => {
     fetchPlayers();
-  }, []);
+  }, [reload]);
 
   const handleDelete = async (id: number, name: string) => {
     if (confirm(`Xác nhận xóa ${name}?`)) {
       await api.delete(`/players/${id}`);
-      setPlayers(players.filter(x => x.id !== id));
+      onDeleted();
     }
+  };
+
+  const handleEdit = (player: Player) => {
+    setEditingPlayer(player);
   };
 
   return (
@@ -59,8 +65,16 @@ export default function ListPlayer({ reload, onDeleted }: { reload: number, onDe
                 <td className="p-2">{p.role}</td>
                 <td className="p-2">{p.gameAccount}</td>
                 <td className="p-2">
-                  {/* Nút sửa sẽ thêm sau */}
-                  <button onClick={() => handleDelete(p.id, p.fullName)} className="text-red-600 hover:underline">
+                  <button 
+                    onClick={() => handleEdit(p)} 
+                    className="text-blue-600 hover:underline mr-3"
+                  >
+                    Sửa
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(p.id, p.fullName)} 
+                    className="text-red-600 hover:underline"
+                  >
                     Xóa
                   </button>
                 </td>
@@ -68,6 +82,16 @@ export default function ListPlayer({ reload, onDeleted }: { reload: number, onDe
             ))}
           </tbody>
         </table>
+      )}
+      {editingPlayer && (
+        <EditPlayerForm
+          player={editingPlayer}
+          onClose={() => setEditingPlayer(null)}
+          onUpdated={() => {
+            setEditingPlayer(null);
+            onUpdated();
+          }}
+        />
       )}
     </div>
   );

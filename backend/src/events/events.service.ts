@@ -30,10 +30,27 @@ export class EventsService {
   }
 
   async update(id: number, updateEventDto: UpdateEventDto): Promise<Event> {
+    console.log('=== UPDATE EVENT DEBUG ===');
+    console.log('ID:', id);
+    console.log('Update DTO:', updateEventDto);
+    
     const event = await this.findOne(id);
-    Object.assign(event, updateEventDto);
-    return this.eventsRepo.save(event);
-  }
+    console.log('Found event before update:', event);
+    
+    // Thử cách khác: merge và save
+    const mergedEvent = this.eventsRepo.merge(event, updateEventDto);
+    console.log('Merged event:', mergedEvent);
+    
+    const savedEvent = await this.eventsRepo.save(mergedEvent, { reload: true });
+    console.log('Saved event:', savedEvent);
+    
+    // Kiểm tra lại từ database
+    const finalEvent = await this.findOne(id);
+    console.log('Final event from DB:', finalEvent);
+    console.log('=== END UPDATE DEBUG ===');
+    
+    return finalEvent;
+  }  
 
   async remove(id: number): Promise<{ deleted: boolean }> {
     const event = await this.findOne(id);

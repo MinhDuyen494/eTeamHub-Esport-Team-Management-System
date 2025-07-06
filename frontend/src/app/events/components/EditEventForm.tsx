@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import api from "@/utils/api";
 
 type Event = {
@@ -8,21 +8,22 @@ type Event = {
   startTime: string;
   endTime: string;
   type: string;
-  note: string;
+  note?: string;
 };
 
-// Hàm tiện ích để chuyển đổi ngày tháng sang định dạng input datetime-local
-const toDateTimeLocal = (dateString: string) => {
-    const date = new Date(dateString);
-    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-    return date.toISOString().slice(0, 16);
-};
-
-export default function EditEventForm({ event, onClose, onUpdated }: { event: Event; onClose: () => void; onUpdated: () => void; }) {
+export default function EditEventForm({
+  event,
+  onClose,
+  onUpdated,
+}: {
+  event: Event;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
   const [form, setForm] = useState({
     title: event.title,
-    startTime: toDateTimeLocal(event.startTime),
-    endTime: toDateTimeLocal(event.endTime),
+    startTime: event.startTime.slice(0, 16), // Đảm bảo đúng định dạng
+    endTime: event.endTime.slice(0, 16),
     type: event.type,
     note: event.note || "",
   });
@@ -36,9 +37,32 @@ export default function EditEventForm({ event, onClose, onUpdated }: { event: Ev
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.put(`/events/${event.id}`, form); //
-      onUpdated(); // Báo cho component cha reload
+      console.log('=== FRONTEND UPDATE DEBUG ===');
+      console.log('Event ID:', event.id);
+      console.log('Form data:', form);
+      
+      // Kiểm tra việc chuyển đổi date
+      const startDate = new Date(form.startTime);
+      const endDate = new Date(form.endTime);
+      console.log('Start date object:', startDate);
+      console.log('End date object:', endDate);
+      console.log('Start date ISO:', startDate.toISOString());
+      console.log('End date ISO:', endDate.toISOString());
+      
+      const payload = {
+        ...form,
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
+      };
+      console.log('Payload being sent:', payload);
+      console.log('=== END FRONTEND DEBUG ===');
+      
+      const response = await api.put(`/events/${event.id}`, payload);
+      console.log('Response from server:', response.data);
+      
+      onUpdated();
     } catch (err: any) {
+      console.error('Error updating event:', err);
       alert(err?.response?.data?.message || "Có lỗi xảy ra!");
     } finally {
       setSubmitting(false);
@@ -46,39 +70,22 @@ export default function EditEventForm({ event, onClose, onUpdated }: { event: Ev
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 className="text-xl font-bold mb-4">Chỉnh sửa sự kiện</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Tiêu đề</label>
-            <input className="border p-2 rounded w-full mt-1" name="title" value={form.title} onChange={handleChange} required />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Thời gian bắt đầu</label>
-              <input className="border p-2 rounded w-full mt-1" type="datetime-local" name="startTime" value={form.startTime} onChange={handleChange} required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Thời gian kết thúc</label>
-              <input className="border p-2 rounded w-full mt-1" type="datetime-local" name="endTime" value={form.endTime} onChange={handleChange} required />
-            </div>
-          </div>
-           <div>
-            <label className="block text-sm font-medium text-gray-700">Loại sự kiện</label>
-             <select name="type" value={form.type} onChange={handleChange} className="border p-2 rounded w-full mt-1">
-                <option value="Luyện tập">Luyện tập</option>
-                <option value="Thi đấu">Thi đấu</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Ghi chú</label>
-            <input className="border p-2 rounded w-full mt-1" name="note" value={form.note} onChange={handleChange} />
-          </div>
-          <div className="flex justify-end space-x-3 pt-2">
-            <button type="button" onClick={onClose} className="bg-gray-200 px-4 py-2 rounded">Hủy</button>
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={submitting}>
-              {submitting ? "Đang lưu..." : "Lưu thay đổi"}
+    <div className="fixed top-0 left-0 w-full h-full bg-black/30 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-md w-full max-w-md shadow-lg">
+        <h2 className="text-lg font-bold mb-4">Sửa sự kiện</h2>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input className="border w-full p-2 rounded" name="title" placeholder="Tiêu đề" value={form.title} onChange={handleChange} required />
+          <input className="border w-full p-2 rounded" type="datetime-local" name="startTime" value={form.startTime} onChange={handleChange} required />
+          <input className="border w-full p-2 rounded" type="datetime-local" name="endTime" value={form.endTime} onChange={handleChange} required />
+          <select className="border w-full p-2 rounded" name="type" value={form.type} onChange={handleChange}>
+            <option>Luyện tập</option>
+            <option>Thi đấu</option>
+          </select>
+          <input className="border w-full p-2 rounded" name="note" placeholder="Ghi chú" value={form.note} onChange={handleChange} />
+          <div className="flex justify-end space-x-2 pt-2">
+            <button type="button" className="px-3 py-1 bg-gray-200 rounded" onClick={onClose}>Hủy</button>
+            <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded" disabled={submitting}>
+              {submitting ? "Đang lưu..." : "Lưu"}
             </button>
           </div>
         </form>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, ParseIntPipe, Patch } from '@nestjs/common';
 import { EventsService } from '../events.service';
 import { CreateEventDto } from '../dto/create-event.dto';
 import { UpdateEventDto } from '../dto/update-event.dto';
@@ -24,6 +24,10 @@ export class EventsController {
 
   @Put(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() updateEventDto: UpdateEventDto) {
+    console.log('=== CONTROLLER UPDATE DEBUG ===');
+    console.log('Request ID:', id);
+    console.log('Request Body:', updateEventDto);
+    console.log('=== END CONTROLLER DEBUG ===');
     return this.eventsService.update(id, updateEventDto);
   }
 
