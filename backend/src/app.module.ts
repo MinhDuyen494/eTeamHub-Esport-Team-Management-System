@@ -5,7 +5,7 @@ import { PlayersModule } from './players/players.module';
 import { EventsModule } from './events/events.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-
+import { TeamsModule } from './teams/teams.module';
 
 @Module({
   imports: [
@@ -27,6 +27,7 @@ import { AuthModule } from './auth/auth.module';
     EventsModule,
     UsersModule,
     AuthModule,
+    TeamsModule,
   ],
 })
 export class AppModule {}
