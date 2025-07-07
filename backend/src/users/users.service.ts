@@ -62,4 +62,22 @@ export class UsersService {
     Object.assign(user, updateUserDto);
     return this.usersRepo.save(user);
   }
+
+  async fixMissingPlayers() {
+    const users = await this.usersRepo.find({ relations: ['player'] });
+    const usersWithoutPlayer = users.filter(u => !u.player);
+    for (const user of usersWithoutPlayer) {
+      const player = this.playersRepo.create({
+        fullName: user.email, // hoặc để trống hoặc sinh giá trị mặc định
+        ign: 'IGN_' + user.id,
+        role: 'unknown',
+        gameAccount: 'ACC_' + user.id,
+        user: user,
+      });
+      await this.playersRepo.save(player);
+      user.player = player;
+      await this.usersRepo.save(user);
+    }
+    return { fixed: usersWithoutPlayer.length };
+  }
 }

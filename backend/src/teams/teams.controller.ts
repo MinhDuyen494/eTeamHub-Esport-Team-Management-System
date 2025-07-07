@@ -86,5 +86,4 @@ export class TeamsController {
     const leaderId = req.user.id;
     return this.teamsService.removeMember(Number(id), dto.playerId, leaderId);
   }
-
 }

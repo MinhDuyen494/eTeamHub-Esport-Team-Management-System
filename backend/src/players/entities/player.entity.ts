@@ -1,6 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { OneToOne, JoinColumn } from 'typeorm';
+import { Team } from 'src/teams/entities/team.entity';
+import { TeamInvite } from '../../team-invites/entities/team-invite.entity';
 @Entity('players') // tên bảng trong database là 'players'
 export class Player {
 
@@ -35,4 +37,10 @@ export class Player {
   @OneToOne(() => User, user => user.player) // Liên kết tới User
   @JoinColumn() // Tạo ra cột 'userId' trong bảng 'players'
   user: User;
+
+  @ManyToOne(() => Team, team => team.members, { nullable: true })
+  team: Team;
+
+  @OneToMany(() => TeamInvite, invite => invite.player)
+  invites: TeamInvite[];
 }

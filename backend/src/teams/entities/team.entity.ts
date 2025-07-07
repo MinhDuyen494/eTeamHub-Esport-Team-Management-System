@@ -7,9 +7,11 @@ import {
     ManyToOne,
     ManyToMany,
     JoinTable,
+    OneToMany,
   } from 'typeorm';
   import { User } from '../../users/entities/user.entity';
   import { Player } from '../../players/entities/player.entity';
+import { TeamInvite } from '../../team-invites/entities/team-invite.entity';
   
   @Entity('teams')
   export class Team {
@@ -25,12 +27,13 @@ import {
     // Leader: user có role = 'leader'
     @ManyToOne(() => User)
     leader: User;
-  
-    // Thành viên: Nhiều player thuộc nhiều team (nếu muốn, hoặc 1 team nhiều player)
-    @ManyToMany(() => Player)
-    @JoinTable()
+      
+    @OneToMany(() => Player, player => player.team)
     members: Player[];
-  
+
+    @OneToMany(() => TeamInvite, invite => invite.team)
+    invites: TeamInvite[];
+
     @CreateDateColumn()
     createdAt: Date;
   
