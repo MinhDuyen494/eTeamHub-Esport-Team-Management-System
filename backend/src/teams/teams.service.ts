@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto } from './dto/add-member.dto';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 
 @Injectable()
 export class TeamsService {
@@ -14,6 +15,7 @@ export class TeamsService {
     @InjectRepository(Team) private teamsRepo: Repository<Team>,
     @InjectRepository(User) private usersRepo: Repository<User>,
     @InjectRepository(Player) private playersRepo: Repository<Player>,
+    private activityLogService: ActivityLogService,
   ) {}
 
   async create(createTeamDto: CreateTeamDto, leaderId: number) {
@@ -34,7 +36,15 @@ export class TeamsService {
       leader,
       members,
     });
-    return this.teamsRepo.save(team);
+    const savedTeam = await this.teamsRepo.save(team);
+    await this.activityLogService.createLog(
+      leader,
+      'create_team',
+      'team',
+      savedTeam.id,
+      { ...createTeamDto }
+    );
+    return savedTeam;
   }
 
   async update(teamId: number, updateTeamDto: UpdateTeamDto, leaderId: number) {
@@ -43,8 +53,17 @@ export class TeamsService {
     if (!team) throw new NotFoundException('Team không tồn tại');
     if (team.leader.id !== leaderId) throw new ForbiddenException('Bạn không có quyền sửa đội này');
 
+    const before = { ...team };
     Object.assign(team, updateTeamDto);
-    return this.teamsRepo.save(team);
+    const updated = await this.teamsRepo.save(team);
+    await this.activityLogService.createLog(
+      team.leader,
+      'update_team',
+      'team',
+      team.id,
+      { before, after: updated }
+    );
+    return updated;
   }
 
   async remove(teamId: number, leaderId: number) {
@@ -52,6 +71,13 @@ export class TeamsService {
     if (!team) throw new NotFoundException('Team không tồn tại');
     if (team.leader.id !== leaderId) throw new ForbiddenException('Bạn không có quyền xóa đội này');
     await this.teamsRepo.remove(team);
+    await this.activityLogService.createLog(
+      team.leader,
+      'delete_team',
+      'team',
+      team.id,
+      { name: team.name }
+    );
     return { message: 'Đã xóa team thành công' };
   }
   
@@ -68,7 +94,15 @@ export class TeamsService {
     }
   
     team.members.push(player);
-    return this.teamsRepo.save(team);
+    const updatedTeam = await this.teamsRepo.save(team);
+    await this.activityLogService.createLog(
+      team.leader,
+      'add_member_to_team',
+      'team',
+      team.id,
+      { memberId: playerId, memberName: player.fullName }
+    );
+    return updatedTeam;
   }
   
   async removeMember(teamId: number, playerId: number, leaderId: number) {
@@ -76,7 +110,15 @@ export class TeamsService {
     if (!team) throw new NotFoundException('Team không tồn tại');
     if (team.leader.id !== leaderId) throw new ForbiddenException('Bạn không có quyền xóa thành viên của đội này');
     team.members = team.members.filter(mem => mem.id !== playerId);
-    return this.teamsRepo.save(team);
+    const updatedTeam = await this.teamsRepo.save(team);
+    await this.activityLogService.createLog(
+      team.leader,
+      'remove_member_from_team',
+      'team',
+      team.id,
+      { memberId: playerId, memberName: team.members.find(mem => mem.id === playerId)?.fullName }
+    );
+    return updatedTeam;
   }
   
 }

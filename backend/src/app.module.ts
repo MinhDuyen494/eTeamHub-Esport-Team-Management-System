@@ -9,6 +9,8 @@ import { TeamsModule } from './teams/teams.module';
 import { TeamInvitesModule } from './team-invites/team-invites.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { ReportsModule } from './reports/reports.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ActivityLogModule } from './activity-log/activity-log.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { ReportsModule } from './reports/reports.module';
     TeamInvitesModule,
     AttendanceModule,
     ReportsModule,
+    NotificationsModule,
+    ActivityLogModule,
   ],
 })
 export class AppModule {}

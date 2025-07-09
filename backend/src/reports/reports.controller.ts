@@ -27,4 +27,19 @@ export class ReportsController {
       end
     );
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('player')
+  @Get('player/me')
+  async getMyPlayerReport(
+    @Req() req,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    const playerId = req.user.player?.id;
+    if (!playerId) throw new Error('Không tìm thấy playerId trong token');
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getPlayerReport(playerId, start, end);
+  }
 }

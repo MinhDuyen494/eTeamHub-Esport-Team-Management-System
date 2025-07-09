@@ -7,6 +7,8 @@ import { Repository } from 'typeorm';
 import { CreateTeamDto } from 'src/teams/dto/create-team.dto';
 import { UpdateTeamDto } from 'src/teams/dto/update-team.dto';
 import { TeamInvite } from '../team-invites/entities/team-invite.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 
 @Injectable()
 export class TeamInvitesService {
@@ -14,10 +16,12 @@ export class TeamInvitesService {
     @InjectRepository(TeamInvite) private invitesRepo: Repository<TeamInvite>,
     @InjectRepository(Team) private teamsRepo: Repository<Team>,
     @InjectRepository(Player) private playersRepo: Repository<Player>,
+    private notificationsService: NotificationsService,
+    private activityLogService: ActivityLogService,
   ) {}
 
-  async create(teamId: number, playerId: number) {
-    const player = await this.playersRepo.findOne({ where: { id: playerId }, relations: ['team'] });
+  async create(teamId: number, playerId: number, leader?: any) {
+    const player = await this.playersRepo.findOne({ where: { id: playerId }, relations: ['team', 'user'] });
     if (!player) throw new NotFoundException('Player không tồn tại');
     if (player.team) throw new BadRequestException('Player đã thuộc team khác');
 
@@ -28,7 +32,27 @@ export class TeamInvitesService {
     if (!team) throw new NotFoundException('Team không tồn tại');
 
     const invite = this.invitesRepo.create({ team, player, status: 'pending' });
-    return this.invitesRepo.save(invite);
+    const savedInvite = await this.invitesRepo.save(invite);
+
+    // Gửi notification cho player
+    await this.notificationsService.create(
+      player.user,
+      `Bạn được mời vào team ${team.name}`,
+      'invite'
+    );
+
+    // Ghi log gửi invite
+    if (leader) {
+      await this.activityLogService.createLog(
+        leader,
+        'invite_player',
+        'team_invite',
+        savedInvite.id,
+        { teamId, playerId }
+      );
+    }
+
+    return savedInvite;
   }
 
   async findInvitesForPlayer(playerId: number) {
@@ -51,15 +75,47 @@ export class TeamInvitesService {
 
     // Cập nhật invite
     invite.status = 'accepted';
-    return this.invitesRepo.save(invite);
+    const savedInvite = await this.invitesRepo.save(invite);
+
+    // Ghi log player accept invite
+    await this.activityLogService.createLog(
+      player.user,
+      'accept_invite',
+      'team_invite',
+      invite.id,
+      { teamId: invite.team.id }
+    );
+
+    return savedInvite;
   }
 
   async rejectInvite(inviteId: number, playerId: number) {
-    const invite = await this.invitesRepo.findOne({ where: { id: inviteId }, relations: ['player'] });
+    const invite = await this.invitesRepo.findOne({ where: { id: inviteId }, relations: ['player', 'team'] });
     if (!invite || invite.player.id !== playerId) throw new NotFoundException('Invite không hợp lệ');
     if (invite.status !== 'pending') throw new BadRequestException('Invite đã xử lý');
 
     invite.status = 'rejected';
-    return this.invitesRepo.save(invite);
+    const savedInvite = await this.invitesRepo.save(invite);
+
+    // Gửi notification cho leader
+    const team = await this.teamsRepo.findOne({ where: { id: invite.team.id }, relations: ['leader'] });
+    if (team && team.leader) {
+      await this.notificationsService.create(
+        team.leader,
+        `Player ${invite.player.fullName} đã từ chối lời mời vào team ${team.name}`,
+        'invite'
+      );
+    }
+
+    // Ghi log player reject invite
+    await this.activityLogService.createLog(
+      invite.player.user,
+      'reject_invite',
+      'team_invite',
+      invite.id,
+      { teamId: invite.team.id }
+    );
+
+    return savedInvite;
   }
 }

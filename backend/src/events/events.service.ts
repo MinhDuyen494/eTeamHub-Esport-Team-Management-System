@@ -7,6 +7,8 @@ import { Player } from '../players/entities/player.entity';
 import { AttendanceService } from '../attendance/attendance.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 
 @Injectable()
 export class EventsService {
@@ -16,6 +18,10 @@ export class EventsService {
     @InjectRepository(Team)
     private teamsRepo: Repository<Team>,
     private attendanceService: AttendanceService,
+    private notificationsService: NotificationsService,
+    @InjectRepository(Player)
+    private playersRepo: Repository<Player>,
+    private activityLogService: ActivityLogService,
   ) {}
 
   // Tạo event, chỉ leader đúng mới được tạo, tự động tạo attendance cho các thành viên team
@@ -31,6 +37,24 @@ export class EventsService {
     
     // Tự động tạo attendance cho tất cả player trong team
     await this.attendanceService.createAttendancesForEvent(savedEvent.id, team.id);
+
+    // Gửi notification cho tất cả player trong team
+    const players = await this.playersRepo.find({ where: { team: { id: team.id } }, relations: ['user'] });
+    for (const player of players) {
+      await this.notificationsService.create(
+        player.user,
+        `Team ${team.name} có sự kiện mới: ${event.title}`,
+        'event'
+      );
+    }
+    
+    await this.activityLogService.createLog(
+      user,
+      'create_event',
+      'event',
+      savedEvent.id,
+      { ...createEventDto }
+    );
     
     return savedEvent;
   }
@@ -41,8 +65,17 @@ export class EventsService {
     if (!event) throw new NotFoundException('Event không tồn tại');
     if (event.team.leader.id !== user.id) throw new ForbiddenException('Bạn không có quyền sửa event này');
 
+    const before = { ...event };
     Object.assign(event, dto);
-    return this.eventsRepo.save(event);
+    const updated = await this.eventsRepo.save(event);
+    await this.activityLogService.createLog(
+      user,
+      'update_event',
+      'event',
+      event.id,
+      { before, after: updated }
+    );
+    return updated;
   }
 
   // Xóa event (chỉ leader team)
@@ -52,6 +85,13 @@ export class EventsService {
     if (event.team.leader.id !== user.id) throw new ForbiddenException('Bạn không có quyền xóa event này');
 
     await this.eventsRepo.remove(event);
+    await this.activityLogService.createLog(
+      user,
+      'delete_event',
+      'event',
+      eventId,
+      { title: event.title }
+    );
     return { message: 'Đã xóa event thành công' };
   }
 

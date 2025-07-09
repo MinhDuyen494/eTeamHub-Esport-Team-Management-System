@@ -140,4 +140,56 @@ export class ReportsService {
       }))
     };
   }
+
+  async getPlayerReport(playerId: number, startDate?: Date, endDate?: Date) {
+    // Lấy player, nếu không tồn tại thì báo lỗi
+    const player = await this.playersRepo.findOne({ where: { id: playerId } });
+    if (!player) throw new NotFoundException('Player không tồn tại');
+
+    // Lấy attendance của player trong khoảng thời gian
+    const whereAttendance: any = { player: { id: playerId } };
+    if (startDate && endDate) {
+      whereAttendance.event = { startTime: Between(startDate, endDate) };
+    }
+    const attendances = await this.attendanceRepo.find({
+      where: whereAttendance,
+      relations: ['event'],
+      order: { event: { startTime: 'ASC' } }
+    });
+
+    const totalEvents = attendances.length;
+    const presentCount = attendances.filter(a => a.status === 'present').length;
+    const absentCount = attendances.filter(a => a.status === 'absent').length;
+
+    const eventDetails = attendances.map(a => ({
+      eventId: a.event.id,
+      eventTitle: a.event.title,
+      eventType: a.event.type,
+      eventDate: a.event.startTime,
+      rsvpStatus: a.status === 'accepted' ? 'accepted' : a.status === 'declined' ? 'declined' : a.status === 'pending' ? 'pending' : (a.status === 'present' || a.status === 'absent') ? 'accepted' : 'pending',
+      attendanceStatus: a.status === 'present' ? 'present' : a.status === 'absent' ? 'absent' : 'not-checked',
+      note: a.note || null
+    }));
+
+    return {
+      playerId: player.id,
+      playerName: player.fullName,
+      playerIGN: player.ign,
+      playerRole: player.role,
+      totalEvents,
+      presentCount,
+      absentCount,
+      eventDetails,
+      chartData: {
+        labels: ['Có mặt', 'Vắng mặt'],
+        datasets: [
+          {
+            label: 'Số buổi',
+            data: [presentCount, absentCount],
+            backgroundColor: ['#4bc0c0', '#ff6384']
+          }
+        ]
+      }
+    };
+  }
 }
