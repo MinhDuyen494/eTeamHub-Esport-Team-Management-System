@@ -20,4 +20,7 @@ export class CreateEventDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsNotEmpty()
+  teamId: number;
 }
