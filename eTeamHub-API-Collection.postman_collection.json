@@ -1,0 +1,676 @@
+{
+	"info": {
+		"_postman_id": "eTeamHub-API-Collection",
+		"name": "eTeamHub - eSport Team Management API",
+		"description": "API collection cho hệ thống quản lý team eSport với phân quyền leader/player",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"leader@example.com\",\n  \"password\": \"123456\",\n  \"fullName\": \"Leader Name\",\n  \"ign\": \"LeaderIGN\",\n  \"role\": \"Top\",\n  \"gameAccount\": \"Leader#123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"leader@example.com\",\n  \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "Register Player",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"player@example.com\",\n  \"password\": \"123456\",\n  \"fullName\": \"Player Name\",\n  \"ign\": \"PlayerIGN\",\n  \"role\": \"Jungle\",\n  \"gameAccount\": \"Player#456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Teams",
+			"item": [
+				{
+					"name": "Create Team",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Team Alpha\",\n  \"description\": \"Đội tuyển hàng đầu\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teams",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"teams"
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Team",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Team Alpha Pro\",\n  \"description\": \"Đội tuyển chuyên nghiệp\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teams/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"teams",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Team",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/teams/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"teams",
+								"1"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Team Invites",
+			"item": [
+				{
+					"name": "Send Invite",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"teamId\": 1,\n  \"playerId\": 3\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/team-invites",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"team-invites"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get My Invites",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/team-invites",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"team-invites"
+							]
+						}
+					}
+				},
+				{
+					"name": "Accept Invite",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/team-invites/1/accept",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"team-invites",
+								"1",
+								"accept"
+							]
+						}
+					}
+				},
+				{
+					"name": "Reject Invite",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/team-invites/1/reject",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"team-invites",
+								"1",
+								"reject"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "Create Event",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Luyện tập chiến thuật\",\n  \"startTime\": \"2025-07-10T18:00:00.000Z\",\n  \"endTime\": \"2025-07-10T20:00:00.000Z\",\n  \"type\": \"Luyện tập\",\n  \"note\": \"Tập trung đúng giờ\",\n  \"teamId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events"
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Event",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Luyện tập chiến thuật nâng cao\",\n  \"note\": \"Có mặt trước 10 phút\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/events/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Event",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/events/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Event by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/events/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events",
+								"1"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Attendance",
+			"item": [
+				{
+					"name": "Player RSVP - Accept",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"accepted\",\n  \"note\": \"Sẽ tham gia đầy đủ\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/attendance/1/rsvp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"attendance",
+								"1",
+								"rsvp"
+							]
+						}
+					}
+				},
+				{
+					"name": "Player RSVP - Decline",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"declined\",\n  \"note\": \"Bận việc gia đình\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/attendance/1/rsvp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"attendance",
+								"1",
+								"rsvp"
+							]
+						}
+					}
+				},
+				{
+					"name": "Leader Check-in - Present",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"present\",\n  \"note\": \"Đúng giờ\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/attendance/1/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"attendance",
+								"1",
+								"check-in"
+							]
+						}
+					}
+				},
+				{
+					"name": "Leader Check-in - Absent",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"absent\",\n  \"note\": \"Không có lý do\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/attendance/1/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"attendance",
+								"1",
+								"check-in"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get My Attendances",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/attendance/my-attendances",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"attendance",
+								"my-attendances"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Team Attendances",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{leaderToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/attendance/team/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"attendance",
+								"team",
+								"1"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Test Cases - Authorization",
+			"item": [
+				{
+					"name": "Player Try Create Event (Should Fail)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Test Event\",\n  \"startTime\": \"2025-07-10T18:00:00.000Z\",\n  \"endTime\": \"2025-07-10T20:00:00.000Z\",\n  \"type\": \"Test\",\n  \"teamId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events"
+							]
+						}
+					}
+				},
+				{
+					"name": "Player Try Update Event (Should Fail)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Hack Event\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/events/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Player Try Delete Event (Should Fail)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/events/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events",
+								"1"
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "leaderToken",
+			"value": "your_leader_access_token_here",
+			"type": "string"
+		},
+		{
+			"key": "playerToken",
+			"value": "your_player_access_token_here",
+			"type": "string"
+		}
+	]
+} 

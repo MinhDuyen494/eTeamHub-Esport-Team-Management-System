@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { TeamsModule } from './teams/teams.module';
 import { TeamInvitesModule } from './team-invites/team-invites.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { TeamInvitesModule } from './team-invites/team-invites.module';
     AuthModule,
     TeamsModule,
     TeamInvitesModule,
+    AttendanceModule,
   ],
 })
 export class AppModule {}

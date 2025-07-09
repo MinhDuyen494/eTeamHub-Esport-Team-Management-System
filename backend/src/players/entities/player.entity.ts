@@ -3,6 +3,7 @@ import { User } from '../../users/entities/user.entity';
 import { OneToOne, JoinColumn } from 'typeorm';
 import { Team } from 'src/teams/entities/team.entity';
 import { TeamInvite } from '../../team-invites/entities/team-invite.entity';
+import { Attendance } from '../../attendance/entities/attendance.entity';
 @Entity('players') // tên bảng trong database là 'players'
 export class Player {
 
@@ -43,4 +44,7 @@ export class Player {
 
   @OneToMany(() => TeamInvite, invite => invite.player)
   invites: TeamInvite[];
+
+  @OneToMany(() => Attendance, attendance => attendance.player)
+  attendances: Attendance[];
 }

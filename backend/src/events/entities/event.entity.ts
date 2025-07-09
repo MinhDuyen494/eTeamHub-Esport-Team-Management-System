@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import { Team } from '../../teams/entities/team.entity';
+import { Attendance } from '../../attendance/entities/attendance.entity';
 
 @Entity('events')
 export class Event {
@@ -23,6 +24,9 @@ export class Event {
 
   @ManyToOne(() => Team, team => team.events, { eager: true })
   team: Team;
+
+  @OneToMany(() => Attendance, attendance => attendance.event)
+  attendances: Attendance[];
 
   @CreateDateColumn()
   createdAt: Date;
