@@ -3,14 +3,15 @@ import { AttendanceService } from './attendance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-
+import { UserGuard } from '../common/guards/user.guard';
+import { LeaderGuard } from '../common/guards/leader.guard';
+import { AdminGuard } from '../common/guards/admin.guard';
 @Controller('attendance')
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
   // Player xác nhận RSVP
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('player')
+  @UseGuards(JwtAuthGuard, RolesGuard, UserGuard)
   @Patch(':id/rsvp')
   async updateRSVP(
     @Param('id') id: number,
@@ -23,8 +24,7 @@ export class AttendanceController {
   }
 
   // Leader check-in
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('leader')
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Patch(':id/check-in')
   async checkIn(
     @Param('id') id: number,
@@ -35,8 +35,7 @@ export class AttendanceController {
   }
 
   // Player xem attendance của mình
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('player')
+  @UseGuards(JwtAuthGuard, RolesGuard, UserGuard)
   @Get('my-attendances')
   async getMyAttendances(@Req() req) {
     const playerId = req.user.player?.id;
@@ -45,8 +44,7 @@ export class AttendanceController {
   }
 
   // Leader xem attendance của team
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('leader')
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Get('team/:teamId')
   async getTeamAttendances(@Param('teamId') teamId: number, @Req() req) {
     return this.attendanceService.getTeamAttendances(Number(teamId), req.user.id);

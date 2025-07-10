@@ -6,9 +6,8 @@ import { Request } from 'express';
 import { Param, Patch } from '@nestjs/common';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto } from './dto/add-member.dto';
-import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-
+import { LeaderGuard } from '../common/guards/leader.guard';
 // Định nghĩa interface cho user từ JWT
 interface JwtUser {
   id: number;
@@ -25,9 +24,8 @@ interface RequestWithUser extends Request {
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
   // Create team
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Post()
-  @Roles('leader')
   async create(@Body() dto: CreateTeamDto, @Req() req: RequestWithUser) {
     // Lúc này req.user đã là { id, email, role }
     const leaderId = req.user.id;
@@ -37,9 +35,8 @@ export class TeamsController {
     return this.teamsService.create(dto, leaderId);
   }
   // Update team
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Patch(':id')
-  @Roles('leader')
   async update(
     @Param('id') id: number,
     @Body() dto: UpdateTeamDto,
@@ -50,9 +47,8 @@ export class TeamsController {
   }
 
   // Delete team
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Delete(':id')
-  @Roles('leader')
   async remove(
     @Param('id') id: number,
     @Req() req: RequestWithUser,
@@ -62,9 +58,8 @@ export class TeamsController {
   }
 
   // Add member
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Post(':id/add-member')
-  @Roles('leader')
   async addMember(
     @Param('id') id: number,
     @Body() dto: AddMemberDto,
@@ -75,9 +70,8 @@ export class TeamsController {
   }
 
   // Remove member
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Delete(':id/remove-member')
-  @Roles('leader')
   async removeMember(
     @Param('id') id: number,
     @Body() dto: AddMemberDto,

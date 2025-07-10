@@ -7,14 +7,18 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { RoleProtectionGuard } from '../common/guards/role-protection.guard';
 import { ProtectRole } from '../common/decorators/protect-role.decorator';
 import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
-
-@Controller('users')
+import { Throttle } from '@nestjs/throttler';
+import { AdminGuard } from '../common/guards/admin.guard';
+import { UserGuard } from '../common/guards/user.guard';
+@Throttle({ default: { limit: 5, ttl: 60 } }) // 5 requests mỗi 60 giây cho tất cả route trong controller này
+@Controller('users')  
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   // 1. GET /users/profile – lấy thông tin user hiện tại (dựa trên JWT)
   @Get('profile')
+  @UseGuards(UserGuard)
   async getProfile(@Request() req) {
     const user = await this.usersService.getProfile(req.user.id);
     if (!user) throw new BadRequestException('User không tồn tại');
@@ -25,6 +29,7 @@ export class UsersController {
 
   // 3. POST /users/change-password-secure – đổi mật khẩu bảo mật
   @Post('change-password-secure')
+  @UseGuards(UserGuard)
   async changePasswordSecure(
     @Body() changePasswordDto: ChangePasswordDto,
     @Request() req
@@ -42,6 +47,7 @@ export class UsersController {
 
   // 4. PUT /users/profile/update – user chỉ được cập nhật thông tin cá nhân của chính mình, không cho phép update role
   @Put('profile/update')
+  @UseGuards(UserGuard)
   async updateUserProfile(
     @Body() updateProfileDto: UpdateProfileDto,
     @Request() req
@@ -60,7 +66,7 @@ export class UsersController {
 
   // API cho admin reset mật khẩu user khác
   @Put('admin/:id/reset-password')
-  @UseGuards(RoleProtectionGuard)
+  @UseGuards(RoleProtectionGuard, AdminGuard)
   @ProtectRole()
   async adminResetUserPassword(
     @Param('id', ParseIntPipe) id: number,

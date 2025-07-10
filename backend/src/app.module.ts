@@ -11,6 +11,7 @@ import { AttendanceModule } from './attendance/attendance.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ActivityLogModule } from './activity-log/activity-log.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ActivityLogModule } from './activity-log/activity-log.module';
     ReportsModule,
     NotificationsModule,
     ActivityLogModule,
+    ThrottlerModule.forRoot([{ ttl: 60, limit: 10 }]),
   ],
 })
 export class AppModule {}

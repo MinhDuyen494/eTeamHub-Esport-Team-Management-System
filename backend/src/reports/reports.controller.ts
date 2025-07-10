@@ -3,13 +3,14 @@ import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { LeaderGuard } from 'src/common/guards/leader.guard';
+import { UserGuard } from 'src/common/guards/user.guard';
 
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('leader')
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Get('team/:teamId')
   async getTeamReport(
     @Param('teamId') teamId: number,
@@ -28,8 +29,7 @@ export class ReportsController {
     );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('player')
+  @UseGuards(JwtAuthGuard, RolesGuard, UserGuard)
   @Get('player/me')
   async getMyPlayerReport(
     @Req() req,
