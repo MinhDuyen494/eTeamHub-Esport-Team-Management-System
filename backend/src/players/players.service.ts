@@ -6,6 +6,7 @@ import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { User } from '../users/entities/user.entity';
+import playerMessages from './messages/en';
 
 @Injectable()
 export class PlayersService {
@@ -37,9 +38,7 @@ export class PlayersService {
   // READ ONE
   async findOne(id: number): Promise<Player> {
     const player = await this.playersRepo.findOneBy({ id });
-    if (!player) {
-      throw new NotFoundException(`Player #${id} not found`);
-    }
+    if (!player) throw new NotFoundException(playerMessages.PLAYER_NOT_FOUND);
     return player;
   }
 

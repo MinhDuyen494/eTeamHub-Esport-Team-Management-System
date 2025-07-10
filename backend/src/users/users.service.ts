@@ -8,6 +8,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import * as bcrypt from 'bcryptjs';
+import userMessages from './messages/en';
 
 
 @Injectable()
@@ -61,17 +62,17 @@ export class UsersService {
   async updateUser(id: number, updateUserDto: UpdateUserDto, currentUser: User) {
     const user = await this.findById(id);
     if (!user) {
-      throw new ForbiddenException('User không tồn tại');
+      throw new ForbiddenException(userMessages.USER_NOT_FOUND);
     }
 
     // Bảo vệ role của leader
     if (user.role === 'leader' && updateUserDto.role !== undefined) {
-      throw new ForbiddenException('Không thể thay đổi role của leader');
+      throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
     // Chỉ leader mới được gán role leader
     if (updateUserDto.role === 'leader' && currentUser.role !== 'leader') {
-      throw new ForbiddenException('Chỉ leader mới có thể gán role leader');
+      throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
     // Cập nhật user
@@ -91,22 +92,22 @@ export class UsersService {
   async adminUpdateUser(id: number, adminUpdateUserDto: any, currentUser: User) {
     // Kiểm tra quyền admin/leader
     if (currentUser.role !== 'leader') {
-      throw new ForbiddenException('Chỉ leader mới có thể cập nhật thông tin user');
+      throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
     const user = await this.findById(id);
     if (!user) {
-      throw new ForbiddenException('User không tồn tại');
+      throw new ForbiddenException(userMessages.USER_NOT_FOUND);
     }
 
     // Không cho phép thay đổi role của chính mình
     if (id === currentUser.id && adminUpdateUserDto.role !== undefined) {
-      throw new ForbiddenException('Không thể thay đổi role của chính mình');
+      throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
     // Không cho phép thay đổi role của leader khác
     if (user.role === 'leader' && adminUpdateUserDto.role !== undefined) {
-      throw new ForbiddenException('Không thể thay đổi role của leader khác');
+      throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
     const before = { ...user };
@@ -147,7 +148,7 @@ export class UsersService {
       relations: ['player'],
       select: ['id', 'email', 'role'] // không trả password
     });
-    if (!user) throw new NotFoundException('User không tồn tại');
+    if (!user) throw new NotFoundException(userMessages.USER_NOT_FOUND);
     return {
       id: user.id,
       email: user.email,
@@ -159,7 +160,7 @@ export class UsersService {
 
   async changePassword(userId: number, newPassword: string, currentUser: User) {
     const user = await this.findById(userId);
-    if (!user) throw new ForbiddenException('User không tồn tại');
+    if (!user) throw new ForbiddenException(userMessages.USER_NOT_FOUND);
     user.password = newPassword;
     await this.usersRepo.save(user);
     await this.activityLogService.createLog(
@@ -175,7 +176,7 @@ export class UsersService {
   // Đổi mật khẩu có xác thực mật khẩu cũ và hash mật khẩu mới
   async changePasswordSecure(userId: number, oldPassword: string, newPassword: string, currentUser: User) {
     const user = await this.findById(userId);
-    if (!user) throw new ForbiddenException('User không tồn tại');
+    if (!user) throw new ForbiddenException(userMessages.USER_NOT_FOUND);
     // Kiểm tra mật khẩu cũ
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) throw new ForbiddenException('Mật khẩu cũ không đúng');
@@ -197,7 +198,7 @@ export class UsersService {
   // Cập nhật profile (user và player)
   async updateUserProfile(id: number, updateProfileDto: any, currentUser: User) {
     const user = await this.findById(id, { withPlayer: true });
-    if (!user) throw new ForbiddenException('User không tồn tại');
+    if (!user) throw new ForbiddenException(userMessages.USER_NOT_FOUND);
     const before = { ...user };
 
     // Chỉ update trường cho phép
@@ -241,10 +242,10 @@ export class UsersService {
   // Admin reset mật khẩu user khác
   async adminResetUserPassword(userId: number, newPassword: string, adminUser: User) {
     if (adminUser.role !== 'admin') {
-      throw new ForbiddenException('Chỉ admin mới được phép reset mật khẩu');
+      throw new ForbiddenException(userMessages.FORBIDDEN);
     }
     const user = await this.usersRepo.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User không tồn tại');
+    if (!user) throw new NotFoundException(userMessages.USER_NOT_FOUND);
     const hashed = await bcrypt.hash(newPassword, 10);
     user.password = hashed;
     await this.usersRepo.save(user);

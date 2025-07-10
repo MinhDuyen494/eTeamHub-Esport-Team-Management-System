@@ -5,6 +5,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UserRole } from '../common/types/user.types';
 import * as bcrypt from 'bcryptjs';
+import authMessages from './messages/en';
 
 @Injectable()
 export class AuthService {
@@ -36,12 +37,14 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email, { withPlayer: true });
+    if (!user) throw new UnauthorizedException(authMessages.INVALID_CREDENTIALS);
     if (!user || !(await bcrypt.compare(dto.password, user.password))) {
-      throw new UnauthorizedException('Email hoặc mật khẩu sai');
+      throw new UnauthorizedException(authMessages.UNAUTHORIZED);
     }
     const payload = { sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
+      refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
       user: { id: user.id, email: user.email, role: user.role, player: user.player }
     };
   }

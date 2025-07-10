@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Notification } from './entities/notification.entity';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import notificationMessages from './messages/en';
+import { NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class NotificationsService {

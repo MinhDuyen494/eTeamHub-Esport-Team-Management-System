@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Team } from './entities/team.entity';
 import { User } from '../users/entities/user.entity';
@@ -8,6 +8,7 @@ import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import teamMessages from './messages/en';
 
 @Injectable()
 export class TeamsService {
@@ -22,7 +23,7 @@ export class TeamsService {
     // Tìm leader
     const leader = await this.usersRepo.findOne({ where: { id: leaderId } });
     if (!leader || leader.role !== 'leader')
-      throw new ForbiddenException('Chỉ leader mới được tạo đội!');
+      throw new ForbiddenException(teamMessages.FORBIDDEN);
 
     // Tìm các player muốn thêm (nếu có)
     let members: Player[] = [];
@@ -50,8 +51,8 @@ export class TeamsService {
   async update(teamId: number, updateTeamDto: UpdateTeamDto, leaderId: number) {
     // Chỉ leader của team mới được update
     const team = await this.teamsRepo.findOne({ where: { id: teamId }, relations: ['leader'] });
-    if (!team) throw new NotFoundException('Team không tồn tại');
-    if (team.leader.id !== leaderId) throw new ForbiddenException('Bạn không có quyền sửa đội này');
+    if (!team) throw new NotFoundException(teamMessages.TEAM_NOT_FOUND);
+    if (team.leader.id !== leaderId) throw new ForbiddenException(teamMessages.FORBIDDEN);
 
     const before = { ...team };
     Object.assign(team, updateTeamDto);
@@ -68,8 +69,8 @@ export class TeamsService {
 
   async remove(teamId: number, leaderId: number) {
     const team = await this.teamsRepo.findOne({ where: { id: teamId }, relations: ['leader'] });
-    if (!team) throw new NotFoundException('Team không tồn tại');
-    if (team.leader.id !== leaderId) throw new ForbiddenException('Bạn không có quyền xóa đội này');
+    if (!team) throw new NotFoundException(teamMessages.TEAM_NOT_FOUND);
+    if (team.leader.id !== leaderId) throw new ForbiddenException(teamMessages.FORBIDDEN);
     await this.teamsRepo.remove(team);
     await this.activityLogService.createLog(
       team.leader,
@@ -83,14 +84,14 @@ export class TeamsService {
   
   async addMember(teamId: number, playerId: number, leaderId: number) {
     const team = await this.teamsRepo.findOne({ where: { id: teamId }, relations: ['leader', 'members'] });
-    if (!team) throw new NotFoundException('Team không tồn tại');
-    if (team.leader.id !== leaderId) throw new ForbiddenException('Bạn không có quyền thêm thành viên cho đội này');
+    if (!team) throw new NotFoundException(teamMessages.TEAM_NOT_FOUND);
+    if (team.leader.id !== leaderId) throw new ForbiddenException(teamMessages.FORBIDDEN);
   
     const player = await this.playersRepo.findOne({ where: { id: playerId } });
-    if (!player) throw new NotFoundException('Player không tồn tại');
+    if (!player) throw new NotFoundException(teamMessages.MEMBER_ALREADY_IN_TEAM);
   
     if (team.members.some(mem => mem.id === playerId)) {
-      throw new ForbiddenException('Player đã ở trong đội');
+      throw new ForbiddenException(teamMessages.MEMBER_ALREADY_IN_TEAM);
     }
   
     team.members.push(player);
@@ -107,8 +108,8 @@ export class TeamsService {
   
   async removeMember(teamId: number, playerId: number, leaderId: number) {
     const team = await this.teamsRepo.findOne({ where: { id: teamId }, relations: ['leader', 'members'] });
-    if (!team) throw new NotFoundException('Team không tồn tại');
-    if (team.leader.id !== leaderId) throw new ForbiddenException('Bạn không có quyền xóa thành viên của đội này');
+    if (!team) throw new NotFoundException(teamMessages.TEAM_NOT_FOUND);
+    if (team.leader.id !== leaderId) throw new ForbiddenException(teamMessages.FORBIDDEN);
     team.members = team.members.filter(mem => mem.id !== playerId);
     const updatedTeam = await this.teamsRepo.save(team);
     await this.activityLogService.createLog(
