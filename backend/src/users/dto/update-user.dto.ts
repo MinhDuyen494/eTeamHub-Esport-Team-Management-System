@@ -1,5 +1,4 @@
 import { IsOptional, IsEmail, IsString, IsIn } from 'class-validator';
-import { UserRole } from '../../common/types/user.types';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -12,5 +11,5 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsIn(['leader', 'player'])
-  role?: UserRole;
+  role?: 'leader' | 'player';
 } 

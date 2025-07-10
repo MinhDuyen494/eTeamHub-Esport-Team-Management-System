@@ -19,11 +19,11 @@ import { ActivityLogModule } from './activity-log/activity-log.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get('DATABASE_HOST'),
-        port: (config.get('DATABASE_PORT')),
-        username: config.get('DATABASE_USER'),
-        password: config.get('DATABASE_PASSWORD'),
-        database: config.get('DATABASE_NAME'),
+        host: config.get('DATABASE_HOST') || 'localhost',
+        port: config.get('DATABASE_PORT') || 5432,
+        username: config.get('DATABASE_USER') || 'postgres',
+        password: config.get('DATABASE_PASSWORD') || 'password',
+        database: config.get('DATABASE_NAME') || 'eteamhub',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Tự động đồng bộ DB, chuyển thành false khi deploy thực tế
       }),

@@ -13,7 +13,7 @@ export class User {
   @Column()
   password: string; // Lưu hash
 
-  @Column({ default: 'player' })
+  @Column({ type: 'enum', enum: ['leader', 'player', 'admin'], default: 'player' })
   role: UserRole;
 
   // Liên kết 1-1 với Player
