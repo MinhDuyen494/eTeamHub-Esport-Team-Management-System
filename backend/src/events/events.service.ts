@@ -9,6 +9,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import eventMessages from './messages/en';
 
 @Injectable()
 export class EventsService {
@@ -27,10 +28,10 @@ export class EventsService {
   // Tạo event, chỉ leader đúng mới được tạo, tự động tạo attendance cho các thành viên team
   async create(createEventDto: CreateEventDto, user: any): Promise<Event> {
     // Chỉ leader của team mới được tạo event
-    if (user.role !== 'leader') throw new ForbiddenException('Chỉ leader mới được tạo event');
+    if (user.role !== 'leader') throw new ForbiddenException(eventMessages.FORBIDDEN);
     const team = await this.teamsRepo.findOne({ where: { id: createEventDto.teamId }, relations: ['leader'] });
-    if (!team) throw new NotFoundException('Team không tồn tại');
-    if (team.leader.id !== user.id) throw new ForbiddenException('Bạn không phải leader của team này');
+    if (!team) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
+    if (team.leader.id !== user.id) throw new ForbiddenException(eventMessages.FORBIDDEN);
     
     const event = this.eventsRepo.create({ ...createEventDto, team });
     const savedEvent = await this.eventsRepo.save(event);
@@ -62,8 +63,8 @@ export class EventsService {
   // Sửa event (chỉ leader của team mới được sửa)
   async update(eventId: number, dto: UpdateEventDto, user: any): Promise<Event> {
     const event = await this.eventsRepo.findOne({ where: { id: eventId }, relations: ['team', 'team.leader'] });
-    if (!event) throw new NotFoundException('Event không tồn tại');
-    if (event.team.leader.id !== user.id) throw new ForbiddenException('Bạn không có quyền sửa event này');
+    if (!event) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
+    if (event.team.leader.id !== user.id) throw new ForbiddenException(eventMessages.FORBIDDEN);
 
     const before = { ...event };
     Object.assign(event, dto);
@@ -81,8 +82,8 @@ export class EventsService {
   // Xóa event (chỉ leader team)
   async remove(eventId: number, user: any): Promise<{ message: string }> {
     const event = await this.eventsRepo.findOne({ where: { id: eventId }, relations: ['team', 'team.leader'] });
-    if (!event) throw new NotFoundException('Event không tồn tại');
-    if (event.team.leader.id !== user.id) throw new ForbiddenException('Bạn không có quyền xóa event này');
+    if (!event) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
+    if (event.team.leader.id !== user.id) throw new ForbiddenException(eventMessages.FORBIDDEN);
 
     await this.eventsRepo.remove(event);
     await this.activityLogService.createLog(
@@ -98,15 +99,15 @@ export class EventsService {
   // Lấy danh sách event của team
   async findByTeam(teamId: number, user: any): Promise<Event[]> {
     const team = await this.teamsRepo.findOne({ where: { id: teamId }, relations: ['leader'] });
-    if (!team) throw new NotFoundException('Team không tồn tại');
+    if (!team) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
 
     // Chỉ leader/team member mới được xem
     if (user.role === 'leader' && team.leader.id !== user.id)
-      throw new ForbiddenException('Không phải leader của team này');
+      throw new ForbiddenException(eventMessages.FORBIDDEN);
 
     // Nếu player, phải thuộc team
     if (user.role === 'player' && (!user.player || user.player.team?.id !== team.id))
-      throw new ForbiddenException('Bạn không thuộc team này');
+      throw new ForbiddenException(eventMessages.FORBIDDEN);
 
     return this.eventsRepo.find({ where: { team: { id: teamId } } });
   }
@@ -119,7 +120,7 @@ export class EventsService {
   // Lấy event theo id
   async findOne(id: number): Promise<Event> {
     const event = await this.eventsRepo.findOneBy({ id });
-    if (!event) throw new NotFoundException('Event not found');
+    if (!event) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
     return event;
   }
 }

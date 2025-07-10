@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ActivityLog } from './entities/activity-log.entity';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import activityLogMessages from './messages/en';
+import { NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class ActivityLogService {

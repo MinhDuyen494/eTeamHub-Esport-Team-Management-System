@@ -6,6 +6,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { Event } from '../events/entities/event.entity';
 import { Player } from '../players/entities/player.entity';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import attendanceMessages from './messages/en';
 
 @Injectable()
 export class AttendanceService {
@@ -24,10 +25,10 @@ export class AttendanceService {
       relations: ['player', 'event', 'event.team', 'event.team.leader'] 
     });
     if (!attendance || attendance.player.id !== playerId) {
-      throw new ForbiddenException('Không có quyền cập nhật attendance này');
+      throw new ForbiddenException(attendanceMessages.FORBIDDEN);
     }
     if (attendance.status !== 'pending') {
-      throw new BadRequestException('Attendance đã được xử lý');
+      throw new BadRequestException(attendanceMessages.ALREADY_CHECKED_IN);
     }
     attendance.status = status;
     if (note) attendance.note = note;
@@ -60,9 +61,9 @@ export class AttendanceService {
       where: { id: attendanceId }, 
       relations: ['player', 'event', 'event.team', 'event.team.leader'] 
     });
-    if (!attendance) throw new NotFoundException('Attendance không tồn tại');
+    if (!attendance) throw new NotFoundException(attendanceMessages.ATTENDANCE_NOT_FOUND);
     if (attendance.event.team.leader.id !== leaderId) {
-      throw new ForbiddenException('Bạn không có quyền check-in cho team này');
+      throw new ForbiddenException(attendanceMessages.FORBIDDEN);
     }
     attendance.status = status;
     if (note) attendance.note = note;
@@ -106,7 +107,7 @@ export class AttendanceService {
       order: { createdAt: 'DESC' }
     });
     if (attendances.length > 0 && attendances[0].event.team.leader.id !== leaderId) {
-      throw new ForbiddenException('Bạn không có quyền xem attendance của team này');
+      throw new ForbiddenException(attendanceMessages.FORBIDDEN);
     }
     return attendances;
   }

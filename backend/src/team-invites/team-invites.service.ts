@@ -9,6 +9,7 @@ import { UpdateTeamDto } from 'src/teams/dto/update-team.dto';
 import { TeamInvite } from '../team-invites/entities/team-invite.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import teamInviteMessages from './messages/en';
 
 @Injectable()
 export class TeamInvitesService {
@@ -22,14 +23,14 @@ export class TeamInvitesService {
 
   async create(teamId: number, playerId: number, leader?: any) {
     const player = await this.playersRepo.findOne({ where: { id: playerId }, relations: ['team', 'user'] });
-    if (!player) throw new NotFoundException('Player không tồn tại');
-    if (player.team) throw new BadRequestException('Player đã thuộc team khác');
+    if (!player) throw new NotFoundException(teamInviteMessages.PLAYER_NOT_FOUND);
+    if (player.team) throw new BadRequestException(teamInviteMessages.PLAYER_ALREADY_IN_TEAM);
 
     const existing = await this.invitesRepo.findOne({ where: { player: { id: playerId }, status: 'pending' } });
-    if (existing) throw new BadRequestException('Player đã có invite chờ xử lý');
+    if (existing) throw new BadRequestException(teamInviteMessages.INVITE_ALREADY_PENDING);
 
     const team = await this.teamsRepo.findOne({ where: { id: teamId } });
-    if (!team) throw new NotFoundException('Team không tồn tại');
+    if (!team) throw new NotFoundException(teamInviteMessages.TEAM_NOT_FOUND);
 
     const invite = this.invitesRepo.create({ team, player, status: 'pending' });
     const savedInvite = await this.invitesRepo.save(invite);
@@ -61,8 +62,8 @@ export class TeamInvitesService {
 
   async acceptInvite(inviteId: number, playerId: number) {
     const invite = await this.invitesRepo.findOne({ where: { id: inviteId }, relations: ['player', 'team'] });
-    if (!invite || invite.player.id !== playerId) throw new NotFoundException('Invite không hợp lệ');
-    if (invite.status !== 'pending') throw new BadRequestException('Invite đã xử lý');
+    if (!invite || invite.player.id !== playerId) throw new NotFoundException(teamInviteMessages.INVITE_NOT_FOUND);
+    if (invite.status !== 'pending') throw new BadRequestException(teamInviteMessages.INVALID_INVITE_OPERATION || 'Invite đã xử lý');
 
     // Kiểm tra player chưa có team
     const player = await this.playersRepo.findOne({ where: { id: playerId }, relations: ['team'] });

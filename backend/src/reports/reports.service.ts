@@ -5,6 +5,7 @@ import { Attendance } from '../attendance/entities/attendance.entity';
 import { Event } from '../events/entities/event.entity';
 import { Player } from '../players/entities/player.entity';
 import { Team } from '../teams/entities/team.entity';
+import reportMessages from './messages/en';
 
 @Injectable()
 export class ReportsService {
@@ -22,7 +23,7 @@ export class ReportsService {
       relations: ['leader'] 
     });
     if (!team || team.leader.id !== leaderId) {
-      throw new ForbiddenException('Bạn không có quyền xem báo cáo team này');
+      throw new ForbiddenException(reportMessages.FORBIDDEN);
     }
 
     // Lấy tất cả player trong team
@@ -144,7 +145,7 @@ export class ReportsService {
   async getPlayerReport(playerId: number, startDate?: Date, endDate?: Date) {
     // Lấy player, nếu không tồn tại thì báo lỗi
     const player = await this.playersRepo.findOne({ where: { id: playerId } });
-    if (!player) throw new NotFoundException('Player không tồn tại');
+    if (!player) throw new NotFoundException(reportMessages.PLAYER_NOT_FOUND);
 
     // Lấy attendance của player trong khoảng thời gian
     const whereAttendance: any = { player: { id: playerId } };

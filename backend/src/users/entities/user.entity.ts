@@ -16,6 +16,9 @@ export class User {
   @Column({ type: 'enum', enum: ['leader', 'player', 'admin'], default: 'player' })
   role: UserRole;
 
+  @Column({ nullable: true })
+  refreshToken: string;
+
   // Liên kết 1-1 với Player
   @OneToOne(() => Player, player => player.user)
   player: Player;
