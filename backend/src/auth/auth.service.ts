@@ -39,13 +39,14 @@ export class AuthService {
     const user = await this.usersService.findByEmail(dto.email, { withPlayer: true });
     if (!user) throw new UnauthorizedException(authMessages.INVALID_CREDENTIALS);
     if (!user || !(await bcrypt.compare(dto.password, user.password))) {
-      throw new UnauthorizedException(authMessages.UNAUTHORIZED);
+      throw new UnauthorizedException(authMessages.INVALID_CREDENTIALS);
     }
     const payload = { sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
       refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
-      user: { id: user.id, email: user.email, role: user.role, player: user.player }
+      user: { id: user.id, email: user.email, role: user.role, player: user.player },
+      message: authMessages.LOGIN_SUCCESS
     };
   }
 }
