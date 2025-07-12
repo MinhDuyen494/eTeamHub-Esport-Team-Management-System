@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, notification } from 'antd';
-import { LockOutlined, MailOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, message, Typography, Space, Alert, notification } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { login } from '../../api/auth.api';
+import { AuthContext } from '../../Context/AuthContext';
+import { login as loginApi } from '../../api/auth.api';
+import { getCurrentLanguage, getMessage } from '../../utils/language';
 import '../../css/auth.css';
 
 const { Title, Text } = Typography;
@@ -11,22 +13,42 @@ const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = React.useContext(AuthContext);
+  const currentLang = getCurrentLanguage();
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
 
   const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);
     try {
-      const response = await login(values);
+      const response = await loginApi(values);
+      
+      // Check if login was successful
+      if (response.access_token && response.user) {
+        // Save to localStorage
         localStorage.setItem('accessToken', response.access_token);
-        localStorage.setItem('refreshToken', response.refresh_token);
+        localStorage.setItem('refreshToken', response.refresh_token || '');
         localStorage.setItem('user', JSON.stringify(response.user));
+        
+        // Call context login
+        login(response.user, response.access_token);
+        
+        // Show success message from backend first, fallback to default
+        const successMessage = response.message || getMessage('LOGIN_SUCCESS');
+        notification.success({ message: successMessage });
+        
         navigate(from, { replace: true });
-        notification.success({ message: response.message });
+      } else {
+        // Show error message from backend first, fallback to default
+        const errorMessage = response.message || getMessage('LOGIN_FAILED');
+        notification.error({ message: errorMessage });
+      }
     } catch (error: any) {
-      console.log(error);
-      notification.error({ message: 'Login failed. Please try again.' });
       console.error('Login error:', error);
+      
+      // Handle error response - prioritize backend message
+      const errorMessage = error.response?.data?.message || getMessage('LOGIN_FAILED');
+      notification.error({ message: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -41,7 +63,7 @@ const Auth: React.FC = () => {
               eSport Team Manager
             </Title>
             <Text type="secondary">
-              Sign in to manage your eSport team
+              {currentLang === 'vi' ? 'Đăng nhập để quản lý đội eSport' : 'Sign in to manage your eSport team'}
             </Text>
           </div>
 
@@ -54,24 +76,30 @@ const Auth: React.FC = () => {
             <Form.Item
               name="email"
               rules={[
-                { required: true, message: 'Please input your email!' },
+                { 
+                  required: true, 
+                  message: currentLang === 'vi' ? 'Vui lòng nhập email!' : 'Please input your email!' 
+                },
               ]}
             >
               <Input
-                prefix={<MailOutlined />}
-                placeholder="Email"
+                prefix={<UserOutlined />}
+                placeholder={currentLang === 'vi' ? 'Email' : 'Email'}
               />
             </Form.Item>
 
             <Form.Item
               name="password"
               rules={[
-                { required: true, message: 'Please input your password!' },
+                { 
+                  required: true, 
+                  message: currentLang === 'vi' ? 'Vui lòng nhập mật khẩu!' : 'Please input your password!' 
+                },
               ]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Password"
+                placeholder={currentLang === 'vi' ? 'Mật khẩu' : 'Password'}
               />
             </Form.Item>
 
@@ -83,7 +111,7 @@ const Auth: React.FC = () => {
                 block
                 className="loginButton"
               >
-                Sign In
+                {currentLang === 'vi' ? 'Đăng nhập' : 'Sign In'}
               </Button>
             </Form.Item>
           </Form>

@@ -4,8 +4,9 @@ import Auth from './pages/Auth/auth.tsx'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
-
-const Dashboard = () => <div style={{padding: 32, textAlign: 'center'}}><h2>Dashboard</h2><p>Chào mừng bạn đã đăng nhập!</p></div>;
+import AppLayout from './components/Layout'
+import Dashboard from './components/Dashboard'
+import Settings from './components/Settings'
 
 function App() {
   return (
@@ -13,7 +14,9 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/" element={
+              <Navigate to="/auth" replace />
+            } />
             <Route path="/auth" element={
               <PublicRoute>
                 <Auth />
@@ -21,7 +24,16 @@ function App() {
             } />
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Dashboard />
+                <AppLayout>
+                  <Dashboard />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Settings />
+                </AppLayout>
               </ProtectedRoute>
             } />
           </Routes>
