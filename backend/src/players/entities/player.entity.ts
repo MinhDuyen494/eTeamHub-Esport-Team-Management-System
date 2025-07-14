@@ -23,7 +23,7 @@ export class Player {
   ign: string;
 
   // Vai trò chính trong game (Role)
-  @ManyToOne(() => RoleInGame, roleInGame => roleInGame.players)
+  @ManyToOne(() => RoleInGame, roleInGame => roleInGame.name)
   roleInGame: RoleInGame;
 
   // Tài khoản game (VD: Riot ID)

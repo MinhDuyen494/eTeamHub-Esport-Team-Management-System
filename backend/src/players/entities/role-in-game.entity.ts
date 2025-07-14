@@ -6,6 +6,9 @@ export class RoleInGame {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column()
+  name: string;
+
   @OneToMany(() => Player, player => player.roleInGame)
   players: Player[];
 }   

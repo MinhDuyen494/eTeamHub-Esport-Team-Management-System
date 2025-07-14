@@ -10,7 +10,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import * as bcrypt from 'bcryptjs';
-import userMessages from './messages/en';
+import userMessages from './messages/en'; 
 
 @Injectable()
 export class UsersService {
@@ -52,7 +52,7 @@ export class UsersService {
     // Lấy roleInGame nếu có
     let roleInGameEntity: RoleInGame | null = null;
     if (data.player && data.player.roleInGame) {
-      roleInGameEntity = await this.roleInGameRepo.findOne({ where: { players: { id: data.player.id } } });
+      roleInGameEntity = await this.roleInGameRepo.findOne({ where: { name: data.player.roleInGame.name } });
       if (!roleInGameEntity) throw new BadRequestException('RoleInGame not found');
     }
 
@@ -289,7 +289,7 @@ export class UsersService {
       if (updateProfileDto.ign) user.player.ign = updateProfileDto.ign;
       if (updateProfileDto.gameAccount) user.player.gameAccount = updateProfileDto.gameAccount;
       if (updateProfileDto.roleInGame) {
-        const roleInGameEntity = await this.roleInGameRepo.findOne({ where: { players: { id: user.player.id } } });
+        const roleInGameEntity = await this.roleInGameRepo.findOne({ where: { name: updateProfileDto.roleInGame } });
         if (!roleInGameEntity) throw new BadRequestException('RoleInGame not found');
         user.player.roleInGame = roleInGameEntity;
       }
