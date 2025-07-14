@@ -1,4 +1,5 @@
 import { IsEmail, IsString, MinLength } from 'class-validator';
+import { RoleInGame } from 'src/players/entities/player.entity';
 
 export class RegisterDto {
   @IsEmail()
@@ -15,7 +16,7 @@ export class RegisterDto {
   ign: string;
 
   @IsString()
-  role: string; // Đây là role của player (vai trò ingame: Top, Jungle, Mid, ADC, Support)
+  roleInGame: RoleInGame; // Đây là role của player (vai trò ingame: Top, Jungle, Mid, ADC, Support)
 
   @IsString()
   gameAccount: string;

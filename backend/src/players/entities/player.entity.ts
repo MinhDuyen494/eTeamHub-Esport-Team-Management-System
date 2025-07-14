@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Role } from '../../users/entities/roles.entity';
 import { OneToOne, JoinColumn } from 'typeorm';
 import { Team } from 'src/teams/entities/team.entity';
 import { TeamInvite } from '../../team-invites/entities/team-invite.entity';
@@ -15,13 +16,14 @@ export class Player {
   @Column()
   fullName: string;
 
+
   // Tên trong game (In-game Name)
   @Column({ unique: true })
   ign: string;
 
   // Vai trò chính trong game (Role)
-  @Column()
-  role: string;
+  @ManyToOne(() => RoleInGame, roleInGame => roleInGame.players)
+  roleInGame: RoleInGame;
 
   // Tài khoản game (VD: Riot ID)
   @Column({ unique: true })
@@ -47,4 +49,13 @@ export class Player {
 
   @OneToMany(() => Attendance, attendance => attendance.player)
   attendances: Attendance[];
+}
+
+@Entity('roles_in_game')
+export class RoleInGame {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @OneToMany(() => Player, player => player.roleInGame)
+  players: Player[];
 }

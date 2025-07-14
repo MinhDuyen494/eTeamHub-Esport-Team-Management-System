@@ -19,7 +19,7 @@ export class UsersController {
 
   // Dashboard API - Lấy thống kê users
   @Get('stats')
-  @UseGuards(AdminGuard)
+  @UseGuards( AdminGuard)
   async getUserStats() {
     return this.usersService.getUserStats();
   }

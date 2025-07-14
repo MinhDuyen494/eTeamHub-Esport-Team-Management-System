@@ -22,7 +22,7 @@ export class TeamsService {
   async create(createTeamDto: CreateTeamDto, leaderId: number) {
     // Tìm leader
     const leader = await this.usersRepo.findOne({ where: { id: leaderId } });
-    if (!leader || leader.role !== 'leader')
+    if (!leader || leader.role.name !== 'leader')
       throw new ForbiddenException(teamMessages.FORBIDDEN);
 
     // Tìm các player muốn thêm (nếu có)

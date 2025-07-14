@@ -12,8 +12,8 @@ export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
   // Dashboard API - Lấy danh sách events vừa diễn ra có điểm danh
+  @UseGuards(JwtAuthGuard, LeaderGuard)
   @Get('recent-events')
-  @UseGuards(AdminGuard)
   async getRecentAttendanceEvents(@Query('limit') limit = 5) {
     return this.attendanceService.getRecentAttendanceEvents(Number(limit));
   }

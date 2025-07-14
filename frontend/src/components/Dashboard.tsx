@@ -9,32 +9,7 @@ import { getRecentAttendanceEvents } from '../api/attendance.api';
 
 const { Title, Text } = Typography;
 
-// Debug component to show token and user info
-const DebugInfo: React.FC = () => {
-  const [showDebug, setShowDebug] = useState(false);
-  const token = localStorage.getItem('accessToken');
-  const userData = localStorage.getItem('user');
 
-  return (
-    <Card style={{ marginBottom: 16 }}>
-      <Button onClick={() => setShowDebug(!showDebug)}>
-        {showDebug ? 'Ẩn Debug Info' : 'Hiển thị Debug Info'}
-      </Button>
-      {showDebug && (
-        <div style={{ marginTop: 16 }}>
-          <Text strong>Token:</Text>
-          <div style={{ wordBreak: 'break-all', fontSize: '12px', marginBottom: 8 }}>
-            {token ? token.substring(0, 50) + '...' : 'Không có token'}
-          </div>
-          <Text strong>User Data:</Text>
-          <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: 8 }}>
-            {userData || 'Không có user data'}
-          </pre>
-        </div>
-      )}
-    </Card>
-  );
-};
 
 // Block "Điểm danh mới nhất"
 const RecentAttendanceBlock: React.FC = () => {
@@ -136,6 +111,7 @@ const AdminDashboard: React.FC = () => {
       })
       .catch((err) => {
         console.error('Error fetching dashboard data:', err);
+        console.log(err?.response?.data);
         setError('Không lấy được dữ liệu dashboard');
         message.error('Không lấy được dữ liệu dashboard!');
       })
@@ -194,7 +170,6 @@ const AdminDashboard: React.FC = () => {
       <Title level={2} style={{ marginBottom: 32 }}>
         Chào buổi sáng, admin!
       </Title>
-      <DebugInfo />
       <Row gutter={[24, 24]}>
         <Col xs={24} sm={8}>
           <Card>
@@ -236,7 +211,7 @@ const AdminDashboard: React.FC = () => {
           <Card title="Hoạt động gần nhất">
             {activityLogs.length > 0 ? (
               <Timeline
-                items={activityLogs.map((log, idx) => ({
+                items={activityLogs.map((log, idx ) => ({
                   children: (
                     <span>
                       <b>{formatActivityMessage(log)}</b> 

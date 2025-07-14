@@ -14,7 +14,7 @@ export class EventsController {
 
   // Dashboard API - Lấy số lượng events sắp diễn ra
   @Get('upcoming/count')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard,AdminGuard)
   async getUpcomingEventsCount() {
     return this.eventsService.getUpcomingEventsCount();
   }

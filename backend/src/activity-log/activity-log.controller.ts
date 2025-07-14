@@ -6,7 +6,7 @@ import { UserGuard } from '../common/guards/user.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { LeaderGuard } from '../common/guards/leader.guard';
 @Controller('activity-logs')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, UserGuard)
 export class ActivityLogController {
   constructor(private readonly logService: ActivityLogService) {}
 

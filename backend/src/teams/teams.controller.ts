@@ -27,14 +27,14 @@ export class TeamsController {
 
   // Dashboard API - Lấy thống kê teams
   @Get('stats')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async getTeamStats() {
     return this.teamsService.getTeamStats();
   }
 
   // Lấy danh sách teams (cho frontend fallback)
   @Get()
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async getTeams() {
     return this.teamsService.getTeams();
   }

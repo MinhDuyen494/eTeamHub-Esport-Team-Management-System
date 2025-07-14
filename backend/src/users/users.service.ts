@@ -1,8 +1,9 @@
 import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
+import { Role } from './entities/roles.entity';
 import { Repository } from 'typeorm';
-import { Player } from '../players/entities/player.entity';
+import { Player, RoleInGame } from '../players/entities/player.entity';
 import { UserRole, CreateUserWithPlayerData } from '../common/types/user.types';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -10,12 +11,13 @@ import { ActivityLogService } from '../activity-log/activity-log.service';
 import * as bcrypt from 'bcryptjs';
 import userMessages from './messages/en';
 
-
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private usersRepo: Repository<User>,
+    @InjectRepository(Role) private rolesRepo: Repository<Role>,
     @InjectRepository(Player) private playersRepo: Repository<Player>,
+    @InjectRepository(RoleInGame) private roleInGameRepo: Repository<RoleInGame>,
     private notificationsService: NotificationsService,
     private activityLogService: ActivityLogService,
   ) {}
@@ -23,38 +25,62 @@ export class UsersService {
   async findByEmail(email: string, options?: { withPlayer?: boolean }) {
     return this.usersRepo.findOne({
       where: { email },
-      relations: options?.withPlayer ? ['player'] : [],
+      relations: [
+        ...(options?.withPlayer ? ['player', 'player.roleInGame'] : []),
+        'role',
+      ],
     });
   }
 
   async findById(id: number, options?: { withPlayer?: boolean }) {
-    console.log('findById called with id:', id, 'options:', options);
     const user = await this.usersRepo.findOne({
       where: { id },
-      relations: options?.withPlayer ? ['player'] : [],
+      relations: [
+        ...(options?.withPlayer ? ['player', 'player.roleInGame'] : []),
+        'role',
+      ],
     });
-    console.log('findById result:', user);
     return user;
   }
 
   async createWithPlayer(data: CreateUserWithPlayerData) {
+    // Lấy role hệ thống từ bảng roles
+    const roleEntity = await this.rolesRepo.findOne({ where: { name: data.role } });
+    if (!roleEntity) throw new BadRequestException('Role not found');
+
+    // Lấy roleInGame nếu có
+    let roleInGameEntity: RoleInGame | null = null;
+    if (data.player && data.player.roleInGame) {
+      roleInGameEntity = await this.roleInGameRepo.findOne({ where: { players: { id: data.player.id } } });
+      if (!roleInGameEntity) throw new BadRequestException('RoleInGame not found');
+    }
+
     const user = this.usersRepo.create({ 
       email: data.email, 
       password: data.password, 
-      role: data.role 
+      role: roleEntity
     });
     await this.usersRepo.save(user);
 
-    const player = this.playersRepo.create({ ...data.player, user });
-    await this.playersRepo.save(player);
+    if (roleInGameEntity) {
+      if (data.player) {
+        const player = this.playersRepo.create({ 
+          ...data.player, 
+          user,
+          roleInGame: roleInGameEntity
+        });
+        await this.playersRepo.save(player);
+        user.player = player;
+      }
+    }
+    
 
-    user.player = player;
     await this.activityLogService.createLog(
       user,
       'register',
       'user',
       user.id,
-      { email: user.email, role: user.role }
+      { email: user.email, role: user.role.name }
     );
     return user;
   }
@@ -66,13 +92,21 @@ export class UsersService {
     }
 
     // Bảo vệ role của leader
-    if (user.role === 'leader' && updateUserDto.role !== undefined) {
+    if (user.role.name === 'leader' && updateUserDto.role !== undefined) {
       throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
     // Chỉ leader và admin mới được gán role leader và admin
-    if ((updateUserDto.role === 'leader' || updateUserDto.role === 'admin') && currentUser.role !== 'leader' && currentUser.role !== 'admin') {
+    if ((updateUserDto.role === 'leader' || updateUserDto.role === 'admin') &&
+      (currentUser.role.name !== 'leader' && currentUser.role.name !== 'admin')) {
       throw new ForbiddenException(userMessages.FORBIDDEN);
+    }
+
+    // Nếu cập nhật role, lấy entity role mới
+    if (updateUserDto.role) {
+      const newRole = await this.rolesRepo.findOne({ where: { name: updateUserDto.role } });
+      if (!newRole) throw new BadRequestException('Role not found');
+      user.role = newRole;
     }
 
     // Cập nhật user
@@ -91,7 +125,7 @@ export class UsersService {
 
   async adminUpdateUser(id: number, adminUpdateUserDto: any, currentUser: User) {
     // Kiểm tra quyền admin/leader
-    if (currentUser.role !== 'leader' && currentUser.role !== 'admin') {
+    if (currentUser.role.name !== 'leader' && currentUser.role.name !== 'admin') {
       throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
@@ -106,7 +140,7 @@ export class UsersService {
     }
 
     // Không cho phép thay đổi role của leader khác
-    if (user.role === 'leader' && adminUpdateUserDto.role !== undefined) {
+    if (user.role.name === 'leader' && adminUpdateUserDto.role !== undefined) {
       throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
@@ -119,7 +153,9 @@ export class UsersService {
     
     // Cập nhật role nếu có
     if (adminUpdateUserDto.role) {
-      user.role = adminUpdateUserDto.role;
+      const newRole = await this.rolesRepo.findOne({ where: { name: adminUpdateUserDto.role } });
+      if (!newRole) throw new BadRequestException('Role not found');
+      user.role = newRole;
     }
 
     const updated = await this.usersRepo.save(user);
@@ -137,7 +173,7 @@ export class UsersService {
       user: {
         id: updated.id,
         email: updated.email,
-        role: updated.role
+        role: updated.role.name
       }
     };
   }
@@ -145,14 +181,14 @@ export class UsersService {
   async getProfile(userId: number) {
     const user = await this.usersRepo.findOne({
       where: { id: userId },
-      relations: ['player'],
-      select: ['id', 'email', 'role'] // không trả password
+      relations: ['player', 'role', 'player.roleInGame'],
+      select: ['id', 'email'], // không trả password
     });
     if (!user) throw new NotFoundException(userMessages.USER_NOT_FOUND);
     return {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role.name,
       player: user.player
     };
   }
@@ -161,8 +197,8 @@ export class UsersService {
   async getUserStats() {
     const [totalUsers, playerCount, leaderCount] = await Promise.all([
       this.usersRepo.count(),
-      this.usersRepo.count({ where: { role: 'player' } }),
-      this.usersRepo.count({ where: { role: 'leader' } }),
+      this.usersRepo.count({ where: { role: { name: 'player' } } }),
+      this.usersRepo.count({ where: { role: { name: 'leader' } } }),
     ]);
     
     return {
@@ -181,11 +217,13 @@ export class UsersService {
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
+    const adminRole = await this.rolesRepo.findOne({ where: { name: 'admin' } });
+    if (!adminRole) throw new BadRequestException('Role admin not found');
     
     const user = this.usersRepo.create({
       email: data.email,
       password: hashedPassword,
-      role: 'admin'
+      role: adminRole
     });
     
     await this.usersRepo.save(user);
@@ -195,11 +233,10 @@ export class UsersService {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role.name
       }
     };
   }
-  
 
   async changePassword(userId: number, newPassword: string, currentUser: User) {
     const user = await this.findById(userId);
@@ -250,6 +287,11 @@ export class UsersService {
       if (updateProfileDto.fullName) user.player.fullName = updateProfileDto.fullName;
       if (updateProfileDto.ign) user.player.ign = updateProfileDto.ign;
       if (updateProfileDto.gameAccount) user.player.gameAccount = updateProfileDto.gameAccount;
+      if (updateProfileDto.roleInGame) {
+        const roleInGameEntity = await this.roleInGameRepo.findOne({ where: { players: { id: user.player.id } } });
+        if (!roleInGameEntity) throw new BadRequestException('RoleInGame not found');
+        user.player.roleInGame = roleInGameEntity;
+      }
     }
     const updatedUser = await this.usersRepo.save(user);
     if (user.player) await this.playersRepo.save(user.player);
@@ -265,15 +307,15 @@ export class UsersService {
   }
 
   async fixMissingPlayers() {
-    const users = await this.usersRepo.find({ relations: ['player'] });
+    const users = await this.usersRepo.find({ relations: ['player', 'role'] });
     const usersWithoutPlayer = users.filter(u => !u.player);
     for (const user of usersWithoutPlayer) {
       const player = this.playersRepo.create({
         fullName: user.email, // hoặc để trống hoặc sinh giá trị mặc định
         ign: 'IGN_' + user.id,
-        role: 'unknown',
+        roleInGame: undefined, // hoặc gán roleInGame mặc định nếu muốn
         gameAccount: 'ACC_' + user.id,
-        user: user,
+        user: user, 
       });
       await this.playersRepo.save(player);
       user.player = player;
@@ -284,10 +326,10 @@ export class UsersService {
 
   // Admin reset mật khẩu user khác
   async adminResetUserPassword(userId: number, newPassword: string, adminUser: User) {
-    if (adminUser.role !== 'admin') {
+    if (adminUser.role.name !== 'admin') {
       throw new ForbiddenException(userMessages.FORBIDDEN);
     }
-    const user = await this.usersRepo.findOne({ where: { id: userId } });
+    const user = await this.usersRepo.findOne({ where: { id: userId }, relations: ['role'] });
     if (!user) throw new NotFoundException(userMessages.USER_NOT_FOUND);
     const hashed = await bcrypt.hash(newPassword, 10);
     user.password = hashed;

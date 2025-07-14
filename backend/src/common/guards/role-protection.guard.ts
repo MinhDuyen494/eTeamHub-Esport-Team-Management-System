@@ -39,12 +39,12 @@ export class RoleProtectionGuard implements CanActivate {
       }
 
       // Nếu user hiện tại là leader, không cho phép thay đổi role
-      if (currentUser.role === 'leader') {
+      if (currentUser.role.name === 'leader') {
         throw new ForbiddenException('Không thể thay đổi role của leader');
       }
 
       // Nếu đang thay đổi thành leader, chỉ admin mới được phép
-      if (body.role === 'leader' && user.role !== 'leader') {
+      if (body.role === 'leader' && user.role.name !== 'leader'|| user.role.name !== 'admin') {
         throw new ForbiddenException('Chỉ leader mới có thể gán role leader');
       }
     }

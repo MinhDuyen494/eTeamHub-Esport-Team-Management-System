@@ -3,10 +3,10 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { UserRole } from '../common/types/user.types';
 import * as bcrypt from 'bcryptjs';
 import authMessagesEn from './messages/en';
 import authMessagesVi from './messages/vi';
+import { Role } from 'src/users/entities/roles.entity';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +26,7 @@ export class AuthService {
     const hash = await bcrypt.hash(dto.password, 10);
 
     // Đảm bảo chỉ tạo user với role "player" - không cho phép đăng ký leader
-    const systemRole: 'player' | 'leader' = 'player';
+    const systemRole: Role | 'player' = 'player';
 
     const result = await this.usersService.createWithPlayer({
       email: dto.email,
@@ -35,7 +35,7 @@ export class AuthService {
       player: {
         fullName: dto.fullName,
         ign: dto.ign,
-        role: dto.role, // role ingame (Top, Jungle, Mid, ADC, Support)
+        roleInGame: dto.roleInGame, // role ingame (Top, Jungle, Mid, ADC, Support)
         gameAccount: dto.gameAccount,
       }
     });
