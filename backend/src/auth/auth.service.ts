@@ -7,7 +7,6 @@ import * as bcrypt from 'bcryptjs';
 import authMessagesEn from './messages/en';
 import authMessagesVi from './messages/vi';
 import { Role } from 'src/users/entities/roles.entity';
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -35,7 +34,7 @@ export class AuthService {
       player: {
         fullName: dto.fullName,
         ign: dto.ign,
-        roleInGame: dto.roleInGame, // role ingame (Top, Jungle, Mid, ADC, Support)
+        roleInGame: dto.roleInGame, // role in-game (Top, Jungle, Mid, ADC, Support)
         gameAccount: dto.gameAccount,
       }
     });

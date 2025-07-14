@@ -16,7 +16,7 @@ export class RegisterDto {
   ign: string;
 
   @IsString()
-  roleInGame: RoleInGame; // Đây là role của player (vai trò ingame: Top, Jungle, Mid, ADC, Support)
+  roleInGame: RoleInGame; // role in-game (Top, Jungle, Mid, ADC, Support)
 
   @IsString()
   gameAccount: string;

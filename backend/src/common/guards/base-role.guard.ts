@@ -9,7 +9,7 @@ export abstract class BaseRoleGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     if (!user) throw new ForbiddenException('Not authenticated');
-    if (!this.allowedRoles.includes(user.role)) {
+    if (!this.allowedRoles.includes(user.role.name)) {
       throw new ForbiddenException('You do not have permission to access this resource');
     }
     return true;

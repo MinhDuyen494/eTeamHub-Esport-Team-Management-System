@@ -19,7 +19,7 @@ export class UsersController {
 
   // Dashboard API - Lấy thống kê users
   @Get('stats')
-  @UseGuards( AdminGuard)
+  @UseGuards( AdminGuard) 
   async getUserStats() {
     return this.usersService.getUserStats();
   }
@@ -28,6 +28,10 @@ export class UsersController {
   @Post('create-admin')
   async createAdminUser(@Body() data: { email: string; password: string; fullName: string }) {
     return this.usersService.createAdminUser(data);
+  }
+  @Post('create-leader')
+  async createLeaderUser(@Body() data: { email: string; password: string; fullName: string }) {
+    return this.usersService.createLeaderUser(data);
   }
 
   // 1. GET /users/profile – lấy thông tin user hiện tại (dựa trên JWT)
