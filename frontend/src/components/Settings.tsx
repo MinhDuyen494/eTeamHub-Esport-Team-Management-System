@@ -1,67 +1,60 @@
-import React, { useState } from 'react';
-import { Card, Form, Select, Button, Typography, Space, Divider, Switch, notification, Row, Col } from 'antd';
-import { LogoutOutlined, GlobalOutlined, BellOutlined, SecurityScanOutlined, SaveOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Card, Form, Select, Button, Typography, Space, Divider, Switch, Row, Col, Modal, Input } from 'antd';
+import { LogoutOutlined, GlobalOutlined, BellOutlined, SecurityScanOutlined, SaveOutlined, LockOutlined } from '@ant-design/icons';
+import { useSettings } from '../Context/SettingsContext';
+import { getCurrentLanguage } from '../utils/language';
+import '../css/settings.css';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Option } = Select;
+const { Password } = Input;
 
 const Settings: React.FC = () => {
   const [form] = Form.useForm();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [changePasswordForm] = Form.useForm();
+  
+  const {
+    changePasswordModalVisible,
+    loading,
+    changePasswordLoading,
+    notificationSettings,
+    updateNotificationSetting,
+    handleLogout,
+    handleSaveSettings,
+    showChangePasswordModal,
+    handleChangePassword,
+    handleCancelChangePassword,
+  } = useSettings();
 
   // Lấy ngôn ngữ hiện tại từ localStorage
-  const currentLang = localStorage.getItem('lang') || 'vi';
+  const currentLang = getCurrentLanguage();
 
   const handleLanguageChange = (value: string) => {
     localStorage.setItem('lang', value);
-    notification.success({
-      message: value === 'vi' ? 'Đã chuyển sang tiếng Việt' : 'Switched to English',
-    });
     // Reload trang để áp dụng ngôn ngữ mới
     window.location.reload();
   };
 
-  const handleLogout = () => {
-    setLoading(true);
-    // Xóa thông tin đăng nhập
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    
-    notification.success({
-      message: currentLang === 'vi' ? 'Đăng xuất thành công' : 'Logged out successfully',
-    });
-    
-    setTimeout(() => {
-      navigate('/auth');
-    }, 1000);
-  };
-
-  const handleSaveSettings = (values: any) => {
-    console.log('Settings saved:', values);
-    notification.success({
-      message: currentLang === 'vi' ? 'Đã lưu cài đặt' : 'Settings saved',
-    });
+  const handleNotificationChange = (key: keyof typeof notificationSettings, checked: boolean) => {
+    updateNotificationSetting(key, checked);
   };
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <Title level={2}>Settings</Title>
+    <div className="settings-container">
+      <Title level={2} className="settings-title">Settings</Title>
       
-      <Form layout="vertical" onFinish={handleSaveSettings}>
+      <Form layout="vertical" onFinish={handleSaveSettings} className="settings-form">
         {/* Top Row - Language and Security Settings */}
-        <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+        <Row gutter={[24, 24]} className="settings-row">
           {/* Language Settings Column */}
           <Col xs={24} md={12}>
-            <Card title={<><GlobalOutlined /> Language Settings</>}>
+            <Card title={<><GlobalOutlined /> Language Settings</>} className="settings-card">
               <Form.Item
                 label={currentLang === 'vi' ? 'Ngôn ngữ' : 'Language'}
                 name="language"
                 initialValue={currentLang}
               >
-                <Select onChange={handleLanguageChange}>
+                <Select onChange={handleLanguageChange} className="language-select">
                   <Option value="vi">Tiếng Việt</Option>
                   <Option value="en">English</Option>
                 </Select>
@@ -71,54 +64,60 @@ const Settings: React.FC = () => {
 
           {/* Security Settings Column */}
           <Col xs={24} md={12}>
-            <Card title={<><SecurityScanOutlined /> Security Settings</>}>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Button type="default" block>
+            <Card title={<><SecurityScanOutlined /> Security Settings</>} className="settings-card">
+              <Space direction="vertical" className="settings-space-vertical security-settings">
+                <Button 
+                  type="default" 
+                  block 
+                  onClick={showChangePasswordModal}
+                  className="settings-security-button security-button"
+                >
                   {currentLang === 'vi' ? 'Đổi mật khẩu' : 'Change Password'}
                 </Button>
-                <Button type="default" block>
-                  {currentLang === 'vi' ? 'Bảo mật 2 lớp' : 'Two-Factor Authentication'}
-                </Button>
+                
               </Space>
             </Card>
           </Col>
         </Row>
 
         {/* Middle Row - Notification Settings */}
-        <Row style={{ marginBottom: 24 }}>
+        <Row className="settings-row">
           <Col span={24}>
-            <Card title={<><BellOutlined /> Notification Settings</>}>
-              <Row gutter={[24, 16]} justify="center" align="middle">
-                <Col xs={24} md={8} style={{ display: 'flex', justifyContent: 'center' }}>
+            <Card title={<><BellOutlined /> Notification Settings</>} className="settings-card">
+              <Row gutter={[24, 16]} justify="center" align="middle" className="notification-grid">
+                <Col xs={24} md={8} className="notification-item">
                   <Form.Item
                     label={currentLang === 'vi' ? 'Thông báo email' : 'Email notifications'}
-                    name="emailNotifications"
-                    valuePropName="checked"
-                    initialValue={true}
+                    className="notification-switch"
                   >
-                    <Switch />
+                    <Switch 
+                      checked={notificationSettings.emailNotifications}
+                      onChange={(checked) => handleNotificationChange('emailNotifications', checked)}
+                    />
                   </Form.Item>
                 </Col>
                 
-                <Col xs={24} md={8} style={{ display: 'flex', justifyContent: 'center' }}>
+                <Col xs={24} md={8} className="notification-item">
                   <Form.Item
                     label={currentLang === 'vi' ? 'Thông báo push' : 'Push notifications'}
-                    name="pushNotifications"
-                    valuePropName="checked"
-                    initialValue={true}
+                    className="notification-switch"
                   >
-                    <Switch />
+                    <Switch 
+                      checked={notificationSettings.pushNotifications}
+                      onChange={(checked) => handleNotificationChange('pushNotifications', checked)}
+                    />
                   </Form.Item>
                 </Col>
                 
-                <Col xs={24} md={8} style={{ display: 'flex', justifyContent: 'center' }}>
+                <Col xs={24} md={8} className="notification-item">
                   <Form.Item
                     label={currentLang === 'vi' ? 'Thông báo sự kiện' : 'Event notifications'}
-                    name="eventNotifications"
-                    valuePropName="checked"
-                    initialValue={true}
+                    className="notification-switch"
                   >
-                    <Switch />
+                    <Switch 
+                      checked={notificationSettings.eventNotifications}
+                      onChange={(checked) => handleNotificationChange('eventNotifications', checked)}
+                    />
                   </Form.Item>
                 </Col>
               </Row>
@@ -126,23 +125,23 @@ const Settings: React.FC = () => {
           </Col>
         </Row>
 
-        <Divider />
+        <Divider className="settings-divider" />
 
         {/* Bottom Row - Action Buttons */}
         <Row gutter={[24, 16]}>
-          <Col xs={24} md={12} style={{ display: 'flex', justifyContent: 'center' }}>
+          <Col xs={24} md={12} className="settings-col-center">
             <Button 
               type="primary" 
               icon={<SaveOutlined />}
               htmlType="submit"
               size="large"
-              style={{ minWidth: 200 }}
+              className="settings-action-button"
             >
               {currentLang === 'vi' ? 'Lưu cài đặt' : 'Save Settings'}
             </Button>
           </Col>
           
-          <Col xs={24} md={12} style={{ display: 'flex', justifyContent: 'center' }}>
+          <Col xs={24} md={12} className="settings-col-center">
             <Button 
               type="primary" 
               danger 
@@ -150,13 +149,113 @@ const Settings: React.FC = () => {
               onClick={handleLogout}
               loading={loading}
               size="large"
-              style={{ minWidth: 200 }}
+              className="settings-action-button"
             >
               {currentLang === 'vi' ? 'Đăng xuất' : 'Logout'}
             </Button>
           </Col>
         </Row>
       </Form>
+
+      {/* Change Password Modal */}
+      <Modal
+        title={
+          <Space>
+            <LockOutlined />
+            {currentLang === 'vi' ? 'Đổi mật khẩu' : 'Change Password'}
+          </Space>
+        }
+        open={changePasswordModalVisible}
+        onCancel={handleCancelChangePassword}
+        footer={null}
+        width={500}
+        className="change-password-modal"
+      >
+        <Form
+          form={changePasswordForm}
+          layout="vertical"
+          onFinish={handleChangePassword}
+          className="change-password-form"
+        >
+          <Form.Item
+            name="currentPassword"
+            label={currentLang === 'vi' ? 'Mật khẩu hiện tại' : 'Current Password'}
+            rules={[
+              { 
+                required: true, 
+                message: currentLang === 'vi' ? 'Vui lòng nhập mật khẩu hiện tại!' : 'Please enter current password!' 
+              }
+            ]}
+          >
+            <Password 
+              prefix={<LockOutlined />}
+              placeholder={currentLang === 'vi' ? 'Nhập mật khẩu hiện tại' : 'Enter current password'}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="newPassword"
+            label={currentLang === 'vi' ? 'Mật khẩu mới' : 'New Password'}
+            rules={[
+              { 
+                required: true, 
+                message: currentLang === 'vi' ? 'Vui lòng nhập mật khẩu mới!' : 'Please enter new password!' 
+              },
+              { 
+                min: 6, 
+                message: currentLang === 'vi' ? 'Mật khẩu phải có ít nhất 6 ký tự!' : 'Password must be at least 6 characters!' 
+              }
+            ]}
+          >
+            <Password 
+              prefix={<LockOutlined />}
+              placeholder={currentLang === 'vi' ? 'Nhập mật khẩu mới' : 'Enter new password'}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="confirmPassword"
+            label={currentLang === 'vi' ? 'Xác nhận mật khẩu mới' : 'Confirm New Password'}
+            dependencies={['newPassword']}
+            rules={[
+              { 
+                required: true, 
+                message: currentLang === 'vi' ? 'Vui lòng xác nhận mật khẩu mới!' : 'Please confirm new password!' 
+              },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('newPassword') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error(currentLang === 'vi' ? 'Mật khẩu xác nhận không khớp!' : 'Password confirmation does not match!')
+                  );
+                },
+              }),
+            ]}
+          >
+            <Password 
+              prefix={<LockOutlined />}
+              placeholder={currentLang === 'vi' ? 'Xác nhận mật khẩu mới' : 'Confirm new password'}
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            <Space>
+              <Button onClick={handleCancelChangePassword}>
+                {currentLang === 'vi' ? 'Hủy' : 'Cancel'}
+              </Button>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={changePasswordLoading}
+              >
+                {currentLang === 'vi' ? 'Đổi mật khẩu' : 'Change Password'}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

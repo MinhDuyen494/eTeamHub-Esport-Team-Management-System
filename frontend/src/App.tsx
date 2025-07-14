@@ -7,6 +7,7 @@ import PublicRoute from './routes/PublicRoute'
 import AppLayout from './components/Layout'
 import Dashboard from './components/Dashboard'
 import Settings from './components/Settings'
+import { SettingsProvider } from './Context/SettingsContext'
 
 function App() {
   return (
@@ -32,7 +33,9 @@ function App() {
             <Route path="/settings" element={
               <ProtectedRoute>
                 <AppLayout>
-                  <Settings />
+                  <SettingsProvider>
+                    <Settings />
+                  </SettingsProvider>
                 </AppLayout>
               </ProtectedRoute>
             } />

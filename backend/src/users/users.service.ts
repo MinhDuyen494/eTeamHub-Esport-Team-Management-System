@@ -70,8 +70,8 @@ export class UsersService {
       throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
-    // Chỉ leader mới được gán role leader
-    if (updateUserDto.role === 'leader' && currentUser.role !== 'leader') {
+    // Chỉ leader và admin mới được gán role leader và admin
+    if ((updateUserDto.role === 'leader' || updateUserDto.role === 'admin') && currentUser.role !== 'leader' && currentUser.role !== 'admin') {
       throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 
@@ -91,7 +91,7 @@ export class UsersService {
 
   async adminUpdateUser(id: number, adminUpdateUserDto: any, currentUser: User) {
     // Kiểm tra quyền admin/leader
-    if (currentUser.role !== 'leader') {
+    if (currentUser.role !== 'leader' && currentUser.role !== 'admin') {
       throw new ForbiddenException(userMessages.FORBIDDEN);
     }
 

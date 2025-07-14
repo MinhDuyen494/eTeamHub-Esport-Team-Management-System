@@ -1,0 +1,214 @@
+/* Settings Page Styles */
+.settings-container {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+}
+
+.settings-title {
+  margin-bottom: 24px;
+}
+
+/* Card Styles */
+.settings-card {
+  height: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.settings-card .ant-card-head {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.settings-card .ant-card-body {
+  padding: 24px;
+}
+
+/* Form Styles */
+.settings-form .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.settings-form .ant-form-item-label {
+  font-weight: 500;
+}
+
+/* Button Styles */
+.settings-action-button {
+  min-width: 200px;
+  height: 40px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.settings-security-button {
+  height: 40px;
+  font-size: 14px;
+}
+
+/* Modal Styles */
+.change-password-modal .ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.change-password-modal .ant-modal-body {
+  padding: 24px;
+}
+
+.change-password-modal .ant-modal-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px;
+  text-align: right;
+}
+
+.change-password-form .ant-form-item {
+  margin-bottom: 20px;
+}
+
+.change-password-form .ant-form-item-label {
+  font-weight: 500;
+  color: #333;
+}
+
+.change-password-form .ant-input-password {
+  height: 40px;
+}
+
+/* Switch Styles */
+.notification-switch {
+  margin: 8px 0;
+}
+
+.notification-switch .ant-form-item-label {
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .settings-container {
+    padding: 16px;
+  }
+  
+  .settings-action-button {
+    min-width: 150px;
+    width: 100%;
+  }
+  
+  .change-password-modal {
+    margin: 16px;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (max-width: 576px) {
+  .settings-container {
+    padding: 12px;
+  }
+  
+  .settings-card .ant-card-body {
+    padding: 16px;
+  }
+  
+  .change-password-modal .ant-modal-body {
+    padding: 16px;
+  }
+}
+
+/* Animation */
+.settings-card {
+  transition: all 0.3s ease;
+}
+
+.settings-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.settings-action-button {
+  transition: all 0.3s ease;
+}
+
+.settings-action-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Divider Styles */
+.settings-divider {
+  margin: 32px 0;
+  border-color: #f0f0f0;
+}
+
+/* Space Styles */
+.settings-space {
+  width: 100%;
+}
+
+.settings-space-vertical {
+  width: 100%;
+}
+
+/* Row and Column Styles */
+.settings-row {
+  margin-bottom: 24px;
+}
+
+.settings-col {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.settings-col-center {
+  display: flex;
+  justify-content: center;
+}
+
+/* Notification Settings Grid */
+.notification-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.notification-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* Security Settings */
+.security-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.security-button {
+  width: 100%;
+  height: 40px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+/* Language Settings */
+.language-settings {
+  width: 100%;
+}
+
+.language-select {
+  width: 100%;
+}
+
+/* Loading States */
+.settings-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.settings-loading .ant-btn {
+  pointer-events: none;
+} 
