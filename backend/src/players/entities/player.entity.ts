@@ -5,6 +5,7 @@ import { OneToOne, JoinColumn } from 'typeorm';
 import { Team } from 'src/teams/entities/team.entity';
 import { TeamInvite } from '../../team-invites/entities/team-invite.entity';
 import { Attendance } from '../../attendance/entities/attendance.entity';
+import { RoleInGame } from './role-in-game.entity';
 @Entity('players') // tên bảng trong database là 'players'
 export class Player {
 
@@ -51,11 +52,3 @@ export class Player {
   attendances: Attendance[];
 }
 
-@Entity('roles_in_game')
-export class RoleInGame {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @OneToMany(() => Player, player => player.roleInGame)
-  players: Player[];
-}

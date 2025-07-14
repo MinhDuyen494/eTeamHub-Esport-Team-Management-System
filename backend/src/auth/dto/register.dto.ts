@@ -1,5 +1,5 @@
 import { IsEmail, IsString, MinLength } from 'class-validator';
-import { RoleInGame } from 'src/players/entities/player.entity';
+import { RoleInGame } from 'src/players/entities/role-in-game.entity';
 
 export class RegisterDto {
   @IsEmail()
