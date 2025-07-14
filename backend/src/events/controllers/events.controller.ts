@@ -6,9 +6,18 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { LeaderGuard } from '../../common/guards/leader.guard';
+import { AdminGuard } from '../../common/guards/admin.guard';
+
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
+
+  // Dashboard API - Lấy số lượng events sắp diễn ra
+  @Get('upcoming/count')
+  @UseGuards(AdminGuard)
+  async getUpcomingEventsCount() {
+    return this.eventsService.getUpcomingEventsCount();
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Post()

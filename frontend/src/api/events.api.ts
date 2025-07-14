@@ -23,4 +23,10 @@ export const updateEvent = async (id: string, data: any) => {
 export const deleteEvent = async (id: string) => {
   const res = await axiosClient.delete(`/events/${id}`);
   return res.data;
+};
+
+// Dashboard API - Lấy số lượng events sắp diễn ra
+export const getUpcomingEventsCount = async () => {
+  const res = await axiosClient.get('/events/upcoming/count');
+  return res.data;
 }; 

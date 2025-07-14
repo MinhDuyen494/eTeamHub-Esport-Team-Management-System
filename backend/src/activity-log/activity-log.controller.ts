@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserGuard } from '../common/guards/user.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
+import { LeaderGuard } from '../common/guards/leader.guard';
 @Controller('activity-logs')
 @UseGuards(JwtAuthGuard)
 export class ActivityLogController {
@@ -16,7 +17,7 @@ export class ActivityLogController {
     return this.logService.findByUser(req.user.id, Number(limit));
   }
 
-  // Admin xem toàn bộ log
+  // Admin/Leader xem toàn bộ log
   @Get()
   @UseGuards(AdminGuard)
   async allLogs(@Query('limit') limit = 50) {

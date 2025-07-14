@@ -18,4 +18,10 @@ export const rsvpAttendance = async (id: string, data: any) => {
 export const checkInAttendance = async (id: string, data: any) => {
   const res = await axiosClient.patch(`/attendance/${id}/check-in`, data);
   return res.data;
+};
+
+// Dashboard API - Lấy danh sách events vừa diễn ra có điểm danh
+export const getRecentAttendanceEvents = async (limit: number = 5) => {
+  const res = await axiosClient.get(`/attendance/recent-events?limit=${limit}`);
+  return res.data;
 }; 

@@ -10,11 +10,25 @@ import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { UserGuard } from '../common/guards/user.guard';
+import { LeaderGuard } from '../common/guards/leader.guard';
 @Throttle({ default: { limit: 5, ttl: 60 } }) // 5 requests mỗi 60 giây cho tất cả route trong controller này
 @Controller('users')  
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  // Dashboard API - Lấy thống kê users
+  @Get('stats')
+  @UseGuards(AdminGuard)
+  async getUserStats() {
+    return this.usersService.getUserStats();
+  }
+
+  // Temporary API to create admin user (for development only)
+  @Post('create-admin')
+  async createAdminUser(@Body() data: { email: string; password: string; fullName: string }) {
+    return this.usersService.createAdminUser(data);
+  }
 
   // 1. GET /users/profile – lấy thông tin user hiện tại (dựa trên JWT)
   @Get('profile')

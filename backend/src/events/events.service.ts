@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan, Between } from 'typeorm';
 import { Event } from './entities/event.entity';
 import { Team } from '../teams/entities/team.entity';
 import { Player } from '../players/entities/player.entity';
@@ -24,6 +24,29 @@ export class EventsService {
     private playersRepo: Repository<Player>,
     private activityLogService: ActivityLogService,
   ) {}
+
+  // Dashboard API - Lấy số lượng events sắp diễn ra
+  async getUpcomingEventsCount() {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    
+    const [upcomingCount, totalEvents, todayEvents] = await Promise.all([
+      this.eventsRepo.count({ where: { startTime: MoreThan(now) } }),
+      this.eventsRepo.count(),
+      this.eventsRepo.count({ 
+        where: { 
+          startTime: Between(today, tomorrow) 
+        } 
+      }),
+    ]);
+    
+    return {
+      upcomingCount,
+      totalEvents,
+      todayEvents,
+    };
+  }
 
   // Tạo event, chỉ leader đúng mới được tạo, tự động tạo attendance cho các thành viên team
   async create(createEventDto: CreateEventDto, user: any): Promise<Event> {

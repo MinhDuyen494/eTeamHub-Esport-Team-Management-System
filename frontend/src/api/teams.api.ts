@@ -23,4 +23,15 @@ export const addMember = async (id: string, data: any) => {
 export const removeMember = async (id: string, data: any) => {
   const res = await axiosClient.delete(`/teams/${id}/remove-member`, { data });
   return res.data;
+};
+
+export const getTeams = async () => {
+  const res = await axiosClient.get('/teams');
+  return res.data;
+};
+
+// Dashboard API - Lấy tổng số teams
+export const getTeamStats = async () => {
+  const res = await axiosClient.get('/teams/stats');
+  return res.data;
 }; 

@@ -156,6 +156,49 @@ export class UsersService {
       player: user.player
     };
   }
+
+  // Dashboard API - Lấy thống kê users
+  async getUserStats() {
+    const [totalUsers, playerCount, leaderCount] = await Promise.all([
+      this.usersRepo.count(),
+      this.usersRepo.count({ where: { role: 'player' } }),
+      this.usersRepo.count({ where: { role: 'leader' } }),
+    ]);
+    
+    return {
+      totalUsers,
+      playerCount,
+      leaderCount,
+      adminCount: totalUsers - playerCount - leaderCount,
+    };
+  }
+
+  // Temporary method to create admin user (for development only)
+  async createAdminUser(data: { email: string; password: string; fullName: string }) {
+    const existingUser = await this.findByEmail(data.email);
+    if (existingUser) {
+      throw new BadRequestException('User with this email already exists');
+    }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    
+    const user = this.usersRepo.create({
+      email: data.email,
+      password: hashedPassword,
+      role: 'admin'
+    });
+    
+    await this.usersRepo.save(user);
+    
+    return {
+      message: 'Admin user created successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    };
+  }
   
 
   async changePassword(userId: number, newPassword: string, currentUser: User) {

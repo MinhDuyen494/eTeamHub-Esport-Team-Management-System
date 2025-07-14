@@ -18,6 +18,39 @@ export class AttendanceService {
     private activityLogService: ActivityLogService,
   ) {}
 
+  // Dashboard API - Lấy danh sách events vừa diễn ra có điểm danh
+  async getRecentAttendanceEvents(limit: number = 5) {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const events = await this.eventsRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.team', 'team')
+      .leftJoinAndSelect('event.attendances', 'attendance')
+      .where('event.endTime >= :sevenDaysAgo', { sevenDaysAgo })
+      .andWhere('event.endTime <= :now', { now })
+      .orderBy('event.endTime', 'DESC')
+      .take(limit)
+      .getMany();
+    
+    return events.map(event => {
+      const checkedIn = event.attendances.filter(a => 
+        ['present', 'accepted'].includes(a.status)
+      ).length;
+      const totalMember = event.attendances.length;
+      
+      return {
+        id: event.id,
+        name: event.title,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        checkedIn,
+        totalMember,
+        team: event.team?.name || 'Unknown Team',
+      };
+    });
+  }
+
   // Player xác nhận RSVP
   async updateRSVP(attendanceId: number, status: 'accepted' | 'declined', playerId: number, note?: string) {
     const attendance = await this.attendanceRepo.findOne({ 

@@ -121,5 +121,29 @@ export class TeamsService {
     );
     return updatedTeam;
   }
-  
+
+  // Dashboard API - Lấy thống kê teams
+  async getTeamStats() {
+    const totalTeams = await this.teamsRepo.count();
+    const activeTeams = await this.teamsRepo
+      .createQueryBuilder('team')
+      .leftJoin('team.members', 'member')
+      .groupBy('team.id')
+      .having('COUNT(member.id) > 0')
+      .getCount();
+    
+    return {
+      totalTeams,
+      activeTeams,
+      emptyTeams: totalTeams - activeTeams,
+    };
+  }
+
+  // Lấy danh sách teams (cho frontend fallback)
+  async getTeams() {
+    return this.teamsRepo.find({
+      relations: ['leader', 'members'],
+      order: { createdAt: 'DESC' }
+    });
+  }
 }

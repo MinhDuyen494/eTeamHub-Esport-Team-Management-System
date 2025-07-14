@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards, UnauthorizedException, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, UnauthorizedException, Delete, Get } from '@nestjs/common';
 import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -8,6 +8,7 @@ import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { LeaderGuard } from '../common/guards/leader.guard';
+import { AdminGuard } from '../common/guards/admin.guard';
 // Định nghĩa interface cho user từ JWT
 interface JwtUser {
   id: number;
@@ -23,6 +24,21 @@ interface RequestWithUser extends Request {
 @Controller('teams')
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
+
+  // Dashboard API - Lấy thống kê teams
+  @Get('stats')
+  @UseGuards(AdminGuard)
+  async getTeamStats() {
+    return this.teamsService.getTeamStats();
+  }
+
+  // Lấy danh sách teams (cho frontend fallback)
+  @Get()
+  @UseGuards(AdminGuard)
+  async getTeams() {
+    return this.teamsService.getTeams();
+  }
+
   // Create team
   @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Post()

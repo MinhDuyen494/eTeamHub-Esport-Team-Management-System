@@ -21,10 +21,10 @@ export const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      const user = await loginApi({ username, password });
+      const user = await loginApi({ email, password });
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
     } catch (err) {
       dispatch({ type: 'LOGIN_FAILURE' });
@@ -33,6 +33,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     dispatch({ type: 'LOGOUT' });
   };
 

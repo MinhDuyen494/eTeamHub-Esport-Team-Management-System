@@ -18,4 +18,10 @@ export const changePassword = async (data: any) => {
 export const adminResetPassword = async (id: string, data: any) => {
   const res = await axiosClient.put(`/users/admin/${id}/reset-password`, data);
   return res.data;
+};
+
+// Dashboard API - Lấy tổng số users
+export const getUserStats = async () => {
+  const res = await axiosClient.get('/users/stats');
+  return res.data;
 }; 
