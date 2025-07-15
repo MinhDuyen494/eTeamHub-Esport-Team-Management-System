@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getLanguageHeader, formatApiMessage } from '../utils/language';
+import { notification } from 'antd'; // nếu muốn hiện thông báo
 
 const axiosClient = axios.create({
   baseURL: 'http://localhost:3000',
@@ -38,6 +39,18 @@ axiosClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      // Xoá token và user
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      // Hiện thông báo (tuỳ chọn)
+      notification.error({
+        message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+      });
+      // Chuyển hướng về trang đăng nhập
+      window.location.href = '/auth';
+      return; // Dừng lại, không trả về Promise.reject nữa
+    }
     // Handle error responses with language-specific messages
     if (error.response && error.response.data) {
       error.response.data.formattedMessage = formatApiMessage(error.response.data);

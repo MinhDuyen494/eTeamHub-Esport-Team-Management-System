@@ -10,6 +10,7 @@ import Settings from './components/Settings'
 import { SettingsProvider } from './Context/SettingsContext'
 import EventPage from './pages/Events/EventPage'
 import { EventProvider } from './Context/EventContext'
+import PlayersPage from './pages/PlayersPage.tsx'
 function App() {
   return (
     <>
@@ -46,6 +47,13 @@ function App() {
                   <EventProvider>
                     <EventPage />
                   </EventProvider>
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/players" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <PlayersPage />
                 </AppLayout>
               </ProtectedRoute>
             } />

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, List, Typography, Tag, Space, Button, Spin, Input, Select, Modal, Form, DatePicker, Checkbox, Pagination } from 'antd';
-import { PlusOutlined, DeleteOutlined, SearchOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
+import { Row, Col, Card, List, Typography, Tag, Space, Button, Spin, Input, Select, Modal, Form, DatePicker, Checkbox, Pagination, notification } from 'antd';
+import { PlusOutlined, DeleteOutlined, SearchOutlined, DownOutlined, UpOutlined, EditOutlined } from '@ant-design/icons';
 import { useEvent } from '../../Context/EventContext';
 import type { Event } from '../../Context/EventContext';
 import moment from 'moment';
@@ -34,11 +34,15 @@ const EventPage: React.FC = () => {
   const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
   const [selectedEventsToDelete, setSelectedEventsToDelete] = useState<string[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
-  const [addForm] = Form.useForm();
+  const [addForm] = Form.useForm<Event>();
   const [loadingAdd, setLoadingAdd] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [deletePage, setDeletePage] = useState(1);
   const DELETE_PAGE_SIZE = 8;
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editForm] = Form.useForm();
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -138,8 +142,14 @@ const EventPage: React.FC = () => {
       setAddModalVisible(false);
       addForm.resetFields();
       fetchEvents();
+      notification.success({
+        message: 'Thêm sự kiện thành công',
+      });
     } catch (e) {
       console.log(e);
+      notification.error({
+        message: 'Thêm sự kiện thất bại',
+      });
       // handle error
     } finally {
       setLoadingAdd(false);
@@ -158,10 +168,55 @@ const EventPage: React.FC = () => {
       setConfirmDeleteVisible(false);
       setSelectedEventsToDelete([]);
       fetchEvents();
+      notification.success({
+        message: 'Xóa sự kiện thành công',
+      });
     } catch (e) {
+      notification.error({
+        message: 'Xóa sự kiện thất bại',
+      });
       // handle error
     } finally {
       setLoadingDelete(false);
+    }
+  };
+
+  // Hàm mở modal sửa
+  const openEditModal = (event: Event) => {
+    setEditingEvent(event);
+    setEditModalVisible(true);
+    // Điền dữ liệu vào form
+    editForm.setFieldsValue({
+      ...event,
+      startTime: moment(event.startTime),
+      endTime: moment(event.endTime),
+      teamId: event.team?.id,
+    });
+  };
+  // Hàm submit sửa
+  const handleEditEvent = async (values: any) => {
+    if (!editingEvent) return;
+    setLoadingEdit(true);
+    try {
+      const { updateEvent } = await import('../../api/events.api');
+      await updateEvent(editingEvent.id.toString(), {
+        ...values,
+        startTime: values.startTime.format('YYYY-MM-DD HH:mm:ss'),
+        endTime: values.endTime.format('YYYY-MM-DD HH:mm:ss'),
+      });
+      setEditModalVisible(false);
+      setEditingEvent(null);
+      fetchEvents();
+      notification.success({
+        message: 'Sửa sự kiện thành công',
+      });
+    } catch (e) {
+      notification.error({
+        message: 'Sửa sự kiện thất bại',
+      });
+      // handle error
+    } finally {
+      setLoadingEdit(false);
     }
   };
 
@@ -272,7 +327,7 @@ const EventPage: React.FC = () => {
       >
         <List
           dataSource={getFilteredAndSortedEvents([...state.events]).slice((deletePage-1)*DELETE_PAGE_SIZE, deletePage*DELETE_PAGE_SIZE)}
-          renderItem={item => (
+          renderItem={(item: Event) => (
             <List.Item style={{ alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
               <Checkbox
                 checked={selectedEventsToDelete.includes(item.id.toString())}
@@ -313,6 +368,71 @@ const EventPage: React.FC = () => {
         confirmLoading={loadingDelete}
       >
         <Text>Bạn có chắc chắn muốn xóa {selectedEventsToDelete.length} sự kiện đã chọn không?</Text>
+      </Modal>
+
+      {/* Modal Sửa sự kiện */}
+      <Modal
+        title="Sửa sự kiện"
+        open={editModalVisible}
+        onCancel={() => { setEditModalVisible(false); setEditingEvent(null); }}
+        onOk={() => editForm.submit()}
+        confirmLoading={loadingEdit}
+        okText="Lưu"
+        cancelText="Hủy"
+        width={700}
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleEditEvent}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="title" label="Tên sự kiện" rules={[{ required: true, message: 'Nhập tên sự kiện' }]} style={{ marginBottom: 12 }}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="location" label="Địa điểm" rules={[{ required: true, message: 'Nhập địa điểm' }]} style={{ marginBottom: 12 }}>
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="description" label="Mô tả">
+            <Input.TextArea rows={2} />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="startTime" label="Thời gian bắt đầu" rules={[{ required: true, message: 'Chọn thời gian bắt đầu' }]} style={{ marginBottom: 12 }}>
+                <DatePicker showTime format="YYYY-MM-DD HH:mm:ss" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="endTime" label="Thời gian kết thúc" rules={[{ required: true, message: 'Chọn thời gian kết thúc' }]} style={{ marginBottom: 12 }}>
+                <DatePicker showTime format="YYYY-MM-DD HH:mm:ss" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="type" label="Loại sự kiện" rules={[{ required: true, message: 'Chọn loại sự kiện' }]} style={{ marginBottom: 12 }}>
+                <Select>
+                  <Option value="Luyện tập">Luyện tập</Option>
+                  <Option value="Thi đấu">Thi đấu</Option>
+                  <Option value="Training">Training</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="teamId" label="Đội tham gia" rules={[{ required: true, message: 'Chọn đội' }]} style={{ marginBottom: 12 }}>
+                <Select showSearch optionFilterProp="children">
+                  {teams.map((team: any) => (
+                    <Option key={team.id} value={team.id}>{team.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="note" label="Ghi chú">
+            <Input />
+          </Form.Item>
+        </Form>
       </Modal>
 
       <Row gutter={24}>
@@ -377,6 +497,15 @@ const EventPage: React.FC = () => {
                 </Tag>
               </Col>
             </Row>
+            {/* Nút Sửa ở góc dưới bên phải */}
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              style={{ position: 'absolute', right: 24, bottom: 24, zIndex: 3 }}
+              onClick={() => openEditModal(filteredSoonestEvent)}
+            >
+              Sửa
+            </Button>
           </Card>
         )}
 
@@ -386,8 +515,8 @@ const EventPage: React.FC = () => {
             <List
               dataSource={getDisplayEventsLeft(filteredUpcomingEvents.filter(event => event.id !== filteredSoonestEvent?.id), 'upcoming')}
               locale={{ emptyText: 'Không có sự kiện sắp diễn ra khác.' }}
-              renderItem={item => (
-                <List.Item style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              renderItem={(item: Event) => (
+                <List.Item style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
                   <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                     <div style={{ fontSize: 22, fontWeight: 600, color: '#1890ff', marginRight: 16, minWidth: 36, textAlign: 'center' }}>#{item.id}</div>
                     <div style={{ flex: 1 }}>
@@ -405,6 +534,15 @@ const EventPage: React.FC = () => {
                     </div>
                   </div>
                   <Tag color="blue" style={{ fontSize: 15, padding: '6px 18px', borderRadius: 8, fontWeight: 500 }}>Sắp diễn ra</Tag>
+                  {/* Nút Sửa ở góc dưới bên phải của item */}
+                  <Button
+                    type="link"
+                    icon={<EditOutlined />}
+                    style={{ position: 'absolute', right: 12, bottom: 8, zIndex: 2 }}
+                    onClick={() => openEditModal(item)}
+                  >
+                    Sửa
+                  </Button>
                 </List.Item>
               )}
             />
@@ -426,7 +564,7 @@ const EventPage: React.FC = () => {
           <Card title={<Title level={4}>Sự kiện đang diễn ra ({filteredOngoingEvents.length})</Title>} style={{ marginBottom: 24 }}>
             <List
               dataSource={getDisplayEventsLeft(filteredOngoingEvents, 'ongoing')}
-              renderItem={item => (
+              renderItem={(item: Event) => (
                 <List.Item style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                     <div style={{ fontSize: 22, fontWeight: 600, color: '#52c41a', marginRight: 16, minWidth: 36, textAlign: 'center' }}>#{item.id}</div>
@@ -466,7 +604,7 @@ const EventPage: React.FC = () => {
           <List
             dataSource={getDisplayEventsLeft(filteredEndedEvents, 'ended')}
             locale={{ emptyText: 'Không có sự kiện đã kết thúc.' }}
-            renderItem={item => (
+            renderItem={(item: Event) => (
               <List.Item style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                   <div style={{ fontSize: 22, fontWeight: 600, color: '#aaa', marginRight: 16, minWidth: 36, textAlign: 'center' }}>#{item.id}</div>
@@ -575,7 +713,7 @@ const EventPage: React.FC = () => {
             <Card key={teamName} title={<Title level={5} style={{ margin: 0 }}>Đội: {teamName}</Title>} style={{ marginBottom: 16 }}>
               <List
                 dataSource={displayEvents}
-                renderItem={item => (
+                renderItem={(item: Event) => (
                   <List.Item style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ flex: 1 }}>
                       <Text strong>{item.title}</Text>

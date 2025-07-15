@@ -51,10 +51,13 @@ export class EventsService {
   // Tạo event, chỉ leader đúng mới được tạo, tự động tạo attendance cho các thành viên team
   async create(createEventDto: CreateEventDto, user: any): Promise<Event> {
     // Chỉ leader của team mới được tạo event
-    if (user.role !== 'leader') throw new ForbiddenException(eventMessages.FORBIDDEN);
     const team = await this.teamsRepo.findOne({ where: { id: createEventDto.teamId }, relations: ['leader'] });
     if (!team) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
-    if (team.leader.id !== user.id) throw new ForbiddenException(eventMessages.FORBIDDEN);
+    if (
+      user.role.name === 'leader' && team.leader.id !== user.id
+    ) {
+      throw new ForbiddenException(eventMessages.FORBIDDEN);
+    }
     
     const event = this.eventsRepo.create({ ...createEventDto, team });
     const savedEvent = await this.eventsRepo.save(event);
@@ -87,17 +90,30 @@ export class EventsService {
   async update(eventId: number, dto: UpdateEventDto, user: any): Promise<Event> {
     const event = await this.eventsRepo.findOne({ where: { id: eventId }, relations: ['team', 'team.leader'] });
     if (!event) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
-    if (event.team.leader.id !== user.id) throw new ForbiddenException(eventMessages.FORBIDDEN);
+    if (user.role.name === 'leader' && event.team.leader.id !== user.id) {
+      throw new ForbiddenException(eventMessages.FORBIDDEN);
+    }
 
-    const before = { ...event };
-    Object.assign(event, dto);
+    // Xử lý đổi team chỉ cho admin
+    if (dto.teamId && dto.teamId !== event.team.id) {
+      if (user.role.name !== 'admin') {
+        throw new ForbiddenException('Chỉ admin mới được phép đổi đội của sự kiện');
+      }
+      const newTeam = await this.teamsRepo.findOne({ where: { id: dto.teamId } });
+      if (!newTeam) throw new NotFoundException('Team mới không tồn tại');
+      event.team = newTeam;
+    }
+
+    // Gán các trường còn lại
+    Object.assign(event, { ...dto, teamId: undefined }); // Không ghi đè teamId trực tiếp
+
     const updated = await this.eventsRepo.save(event);
     await this.activityLogService.createLog(
       user,
       'update_event',
       'event',
       event.id,
-      { before, after: updated }
+      { before: { ...event }, after: updated }
     );
     return updated;
   }
@@ -106,7 +122,11 @@ export class EventsService {
   async remove(eventId: number, user: any): Promise<{ message: string }> {
     const event = await this.eventsRepo.findOne({ where: { id: eventId }, relations: ['team', 'team.leader'] });
     if (!event) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
-    if (event.team.leader.id !== user.id) throw new ForbiddenException(eventMessages.FORBIDDEN);
+    if (
+      user.role.name === 'leader' && event.team.leader.id !== user.id
+    ) {
+      throw new ForbiddenException(eventMessages.FORBIDDEN);
+    }
 
     await this.eventsRepo.remove(event);
     await this.activityLogService.createLog(
