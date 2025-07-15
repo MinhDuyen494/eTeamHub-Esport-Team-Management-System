@@ -11,4 +11,5 @@ export class RoleInGame {
 
   @OneToMany(() => Player, player => player.roleInGame)
   players: Player[];
+  
 }   

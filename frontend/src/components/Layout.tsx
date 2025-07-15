@@ -101,7 +101,6 @@ const AppLayout: React.FC<LayoutProps> = ({ children }) => {
         </div>
         <Menu
           mode="inline"
-          defaultSelectedKeys={['dashboard']}
           style={{ borderRight: 0 }}
           items={menuItems}
         />

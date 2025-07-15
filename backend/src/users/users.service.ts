@@ -10,7 +10,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import * as bcrypt from 'bcryptjs';
-import userMessages from './messages/en'; 
+import userMessages from './messages/en';
+import { Team } from '../teams/entities/team.entity';
 
 @Injectable()
 export class UsersService {
@@ -186,10 +187,27 @@ export class UsersService {
       select: ['id', 'email'], // không trả password
     });
     if (!user) throw new NotFoundException(userMessages.USER_NOT_FOUND);
+
+    // Nếu là leader, lấy team mà user này quản lý
+    let teamInfo: { teamId: number; teamName: string } | null = null;
+    if (user.role.name === 'leader') {
+      const teamRepo = this.usersRepo.manager.getRepository(Team);
+      const team = await teamRepo.findOne({ where: { leader: { id: user.id } } });
+      if (team) {
+        teamInfo = {
+          teamId: team.id,
+          teamName: team.name
+        };
+      }
+    }
+
     return {
       id: user.id,
       email: user.email,
-      role: user.role.name,
+      role: { id: user.role.id, name: user.role.name },
+      fullname: user.player ? user.player.fullName : null, // hoặc user.fullName nếu có
+      teamId: teamInfo ? teamInfo.teamId : null,
+      teamName: teamInfo ? teamInfo.teamName : null,
       player: user.player
     };
   }

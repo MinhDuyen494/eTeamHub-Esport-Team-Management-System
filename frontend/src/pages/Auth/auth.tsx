@@ -6,6 +6,7 @@ import { AuthContext } from '../../Context/AuthContext';
 import { login as loginApi } from '../../api/auth.api';
 import { getCurrentLanguage, getMessage } from '../../utils/language';
 import '../../css/auth.css';
+import { getProfile } from '../../api/users.api';
 
 const { Title, Text } = Typography;
 
@@ -28,10 +29,13 @@ const Auth: React.FC = () => {
         // Save to localStorage
         localStorage.setItem('accessToken', response.access_token);
         localStorage.setItem('refreshToken', response.refresh_token || '');
-        localStorage.setItem('user', JSON.stringify(response.user));
         
         // Call context login
         login(response.user, response.access_token);
+        const userProfileResponse = await getProfile();
+        const user = userProfileResponse.user || userProfileResponse;
+        localStorage.setItem('user', JSON.stringify(user));
+        console.log(user);
         
         // Show success message from backend first, fallback to default
         const successMessage = response.message || getMessage('LOGIN_SUCCESS');
