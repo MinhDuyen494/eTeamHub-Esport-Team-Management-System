@@ -23,4 +23,12 @@ export class CreateEventDto {
 
   @IsNotEmpty()
   teamId: number;
+
+  @IsNotEmpty()
+  @IsString()
+  location: string;
+
+  @IsNotEmpty()
+  @IsString()
+  description: string;
 }

@@ -14,13 +14,13 @@ axiosClient.interceptors.request.use(
     // Add language header
     const languageHeader = getLanguageHeader();
     config.headers['Accept-Language'] = languageHeader['Accept-Language'];
-    
     // Add token if available
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    config.headers['role'] = user.role;
     return config;
   },
   (error) => {

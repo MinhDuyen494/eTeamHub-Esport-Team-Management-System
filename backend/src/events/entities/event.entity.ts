@@ -11,6 +11,12 @@ export class Event {
   title: string;
 
   @Column()
+  description: string;
+  
+  @Column()
+  location: string;
+
+  @Column()
   startTime: Date;
 
   @Column()
@@ -31,6 +37,5 @@ export class Event {
   @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+
 }

@@ -8,7 +8,8 @@ import AppLayout from './components/Layout'
 import Dashboard from './components/Dashboard'
 import Settings from './components/Settings'
 import { SettingsProvider } from './Context/SettingsContext'
-
+import EventPage from './pages/Events/EventPage'
+import { EventProvider } from './Context/EventContext'
 function App() {
   return (
     <>
@@ -36,6 +37,15 @@ function App() {
                   <SettingsProvider>
                     <Settings />
                   </SettingsProvider>
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/events" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <EventProvider>
+                    <EventPage />
+                  </EventProvider>
                 </AppLayout>
               </ProtectedRoute>
             } />

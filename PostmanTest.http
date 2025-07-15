@@ -1,0 +1,17 @@
+# POST http://localhost:3000/auth/login
+# content-type: application/json
+
+# {
+#     "email": "admin@example.com",
+#     "password": "123456"
+# }
+
+POST http://localhost:3000/users/create-leader
+content-type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGUiOnsiaWQiOjEsIm5hbWUiOiJhZG1pbiJ9LCJpYXQiOjE3NTI1NTQ1NDMsImV4cCI6MTc1MjU1ODE0M30.0I32VTAm-8kZMbKrhfXrnuEJ2pgbBTtApXRSwDrQ0sc
+
+{
+    "email": "leader3@example.com",
+    "password": "123456",
+    "fullName": "Leader Name 3"
+}

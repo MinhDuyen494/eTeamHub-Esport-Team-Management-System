@@ -121,8 +121,8 @@ const AdminDashboard: React.FC = () => {
   // Hàm format activity log message
   const formatActivityMessage = (log: any) => {
     const userName = log.user?.email?.split('@')[0] || 'Unknown';
-    const userRole = log.user?.role || 'user';
-    
+    const userRole = log.user?.role?.name || 'player';
+    console.log(log);
     switch (log.action) {
       case 'create_team':
         return `${userRole} ${userName} tạo team "${log.detail?.name || 'Unknown'}"`;

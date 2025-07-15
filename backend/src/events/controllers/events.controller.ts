@@ -19,7 +19,7 @@ export class EventsController {
     return this.eventsService.getUpcomingEventsCount();
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
+  @UseGuards(JwtAuthGuard,LeaderGuard)
   @Post()
   create(@Body() createEventDto: CreateEventDto, @Req() req) {
     return this.eventsService.create(createEventDto, req.user);
