@@ -11,7 +11,10 @@ import { SettingsProvider } from './Context/SettingsContext'
 import EventPage from './pages/Events/EventPage'
 import { EventProvider } from './Context/EventContext'
 import PlayersPage from './pages/PlayersPage.tsx'
+import UsersPage from './pages/UsersPage.tsx'
+import Register from './pages/Auth/Register.tsx'
 import TeamsPage from './pages/teams/TeamsPage.tsx'
+import CreatePlayerProfilePage from './pages/Players/CreatePlayerProfilePage.tsx'
 function App() {
   return (
     <>
@@ -24,6 +27,11 @@ function App() {
             <Route path="/auth" element={
               <PublicRoute>
                 <Auth />
+              </PublicRoute>
+            } />
+            <Route path="/auth/register" element={
+              <PublicRoute>
+                <Register />
               </PublicRoute>
             } />
             <Route path="/dashboard" element={
@@ -55,6 +63,20 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <PlayersPage />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/players/create" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CreatePlayerProfilePage />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <UsersPage />
                 </AppLayout>
               </ProtectedRoute>
             } />

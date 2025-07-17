@@ -33,11 +33,25 @@ export class TeamsController {
     return this.teamsService.getTeamStats();
   }
 
-  // Lấy danh sách teams (cho frontend fallback)
+  // Lấy danh sách teams (cho admin)
   @Get()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getTeams() {
     return this.teamsService.getTeams();
+  }
+
+  // Lấy danh sách teams cho player (tất cả team + thông tin player)
+  @Get('player/teams')
+  @UseGuards(JwtAuthGuard, UserGuard)
+  async getPlayerTeams(@Req() req: RequestWithUser) {
+    return this.teamsService.getPlayerTeams(req.user.id);
+  }
+
+  // Lấy team theo ID
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async getTeamById(@Param('id') id: number) {
+    return this.teamsService.findById(Number(id));
   }
 
   // Lấy thông tin chi tiết của một team
@@ -48,7 +62,7 @@ export class TeamsController {
   }
 
   // Create team
-  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Post()
   async create(@Body() dto: CreateTeamDto, @Req() req: RequestWithUser) {
     // Lúc này req.user đã là { id, email, role }
@@ -59,7 +73,7 @@ export class TeamsController {
     return this.teamsService.create(dto, leaderId);
   }
   // Update team
-  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Patch(':id')
   async update(
     @Param('id') id: number,
@@ -73,12 +87,11 @@ export class TeamsController {
     
     const leaderId = req.user.id;
     const result = await this.teamsService.update(Number(id), dto, leaderId);
-    console.log('Controller - Update result:', result);
     return result;
   }
 
   // Delete team
-  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Delete(':id')
   async remove(
     @Param('id') id: number,
@@ -100,26 +113,21 @@ export class TeamsController {
     return this.teamsService.addMember(Number(id), dto.playerId, leaderId);
   }
 
-  // Remove member (Admin/Leader only)
-  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
+  // Remove member
+  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Delete(':id/remove-member')
   async removeMember(
     @Param('id') id: number,
     @Body() dto: AddMemberDto,
     @Req() req: RequestWithUser,
   ) {
-    const userId = req.user.id;
-    return this.teamsService.removeMember(Number(id), dto.playerId, userId);
+    const leaderId = req.user.id;
+    return this.teamsService.removeMember(Number(id), dto.playerId, leaderId);
   }
 
-  // Leave team (User can leave their own team)
-  @UseGuards(JwtAuthGuard, UserGuard)
   @Post(':id/leave-team')
-  async leaveTeam(
-    @Param('id') id: number,
-    @Req() req: RequestWithUser,
-  ) {
-    const userId = req.user.id;
-    return this.teamsService.leaveTeam(Number(id), userId);
+  @UseGuards(JwtAuthGuard)
+  async leaveTeam(@Param('id') id: number, @Req() req: RequestWithUser) {
+    return this.teamsService.leaveTeam(id, req.user.id);
   }
 }

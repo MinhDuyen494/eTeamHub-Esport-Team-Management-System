@@ -23,4 +23,14 @@ export const updatePlayer = async (id: string, data: any) => {
 export const deletePlayer = async (id: string) => {
   const res = await axiosClient.delete(`/players/${id}`);
   return res.data;
+};
+
+export const getMyPlayer = async () => {
+  const res = await axiosClient.get('/players/me');
+  return res.data;
+};
+
+export const getRolesInGame = async () => {
+  const res = await axiosClient.get('/players/roles-in-game');
+  return res.data;
 }; 

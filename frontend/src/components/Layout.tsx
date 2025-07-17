@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, theme } from 'antd';
 import {
   MenuFoldOutlined,
@@ -21,51 +21,76 @@ interface LayoutProps {
 
 const AppLayout: React.FC<LayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  const menuItems = [
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Dashboard',
-      onClick: () => navigate('/dashboard'),
-    },
-    {
-      key: 'teams',
-      icon: <TeamOutlined />,
-      label: 'Teams',
-      onClick: () => navigate('/teams'),
-    },
-    {
-      key: 'players',
-      icon: <UserOutlined />,
-      label: 'Players',
-      onClick: () => navigate('/players'),
-    },
-    {
-      key: 'events',
-      icon: <CalendarOutlined />,
-      label: 'Events',
-      onClick: () => navigate('/events'),
-    },
-    {
+  // Lấy thông tin user từ localStorage
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  // Tạo menu items dựa trên role và team membership
+  const getMenuItems = () => {
+    const baseItems = [
+      {
+        key: 'dashboard',
+        icon: <DashboardOutlined />,
+        label: 'Dashboard',
+        onClick: () => navigate('/dashboard'),
+      },
+      {
+        key: 'teams',
+        icon: <TeamOutlined />,
+        label: 'Teams',
+        onClick: () => navigate('/teams'),
+      },
+      {
+        key: 'events',
+        icon: <CalendarOutlined />,
+        label: 'Events',
+        onClick: () => navigate('/events'),
+      },
+    ];
+
+    if (user?.role?.name === 'admin' || user?.role?.name === 'player') {
+      baseItems.push({
+        key: 'players',
+        icon: <UserOutlined />,
+        label: 'Players',
+        onClick: () => navigate('/players'),
+      });
+    }
+    // Thêm Events cho admin hoặc player/leader có team
+
+    // Thêm Users chỉ cho admin
+    if (user?.role?.name === 'admin') {
+      baseItems.push({
+        key: 'users',
+        icon: <UserOutlined />,
+        label: 'Users',
+        onClick: () => navigate('/users'),
+      });
+    }
+
+    // Thêm Settings cho tất cả
+    baseItems.push({
       key: 'settings',
       icon: <SettingOutlined />,
       label: 'Settings',
       onClick: () => navigate('/settings'),
-    },
-  ];
+    });
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    navigate('/auth');
+    return baseItems;
   };
+
+
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -102,7 +127,7 @@ const AppLayout: React.FC<LayoutProps> = ({ children }) => {
         <Menu
           mode="inline"
           style={{ borderRight: 0 }}
-          items={menuItems}
+          items={getMenuItems()}
         />
         <Button
             type="text"

@@ -8,6 +8,7 @@ import {
     ManyToMany,
     JoinTable,
     OneToMany,
+    JoinColumn,
   } from 'typeorm';
   import { User } from '../../users/entities/user.entity';
   import { Player } from '../../players/entities/player.entity';
@@ -26,7 +27,8 @@ import { Event } from '../../events/entities/event.entity';
     description: string;
   
     // Leader: user có role = 'leader'
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, user => user.id, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'leaderId' })
     leader: User;
       
     @OneToMany(() => Player, player => player.team)

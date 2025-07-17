@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.9
--- Dumped by pg_dump version 16.9
+-- Dumped from database version 15.2
+-- Dumped by pg_dump version 15.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -15,19 +15,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- Name: users_role_enum; Type: TYPE; Schema: public; Owner: postgres
---
-
-CREATE TYPE public.users_role_enum AS ENUM (
-    'leader',
-    'player',
-    'admin'
-);
-
-
-ALTER TYPE public.users_role_enum OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -63,7 +50,7 @@ CREATE SEQUENCE public.activity_logs_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.activity_logs_id_seq OWNER TO postgres;
+ALTER TABLE public.activity_logs_id_seq OWNER TO postgres;
 
 --
 -- Name: activity_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -102,7 +89,7 @@ CREATE SEQUENCE public.attendance_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.attendance_id_seq OWNER TO postgres;
+ALTER TABLE public.attendance_id_seq OWNER TO postgres;
 
 --
 -- Name: attendance_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -123,8 +110,9 @@ CREATE TABLE public.events (
     type character varying NOT NULL,
     note character varying,
     "createdAt" timestamp without time zone DEFAULT now() NOT NULL,
-    "updatedAt" timestamp without time zone DEFAULT now() NOT NULL,
-    "teamId" integer
+    "teamId" integer,
+    description character varying NOT NULL,
+    location character varying NOT NULL
 );
 
 
@@ -143,7 +131,7 @@ CREATE SEQUENCE public.events_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.events_id_seq OWNER TO postgres;
+ALTER TABLE public.events_id_seq OWNER TO postgres;
 
 --
 -- Name: events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -181,7 +169,7 @@ CREATE SEQUENCE public.notifications_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.notifications_id_seq OWNER TO postgres;
+ALTER TABLE public.notifications_id_seq OWNER TO postgres;
 
 --
 -- Name: notifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -198,10 +186,10 @@ CREATE TABLE public.players (
     id integer NOT NULL,
     "fullName" character varying NOT NULL,
     ign character varying NOT NULL,
-    role character varying NOT NULL,
     "gameAccount" character varying NOT NULL,
     "createdAt" timestamp without time zone DEFAULT now() NOT NULL,
     "updatedAt" timestamp without time zone DEFAULT now() NOT NULL,
+    "roleInGameId" integer,
     "userId" integer,
     "teamId" integer
 );
@@ -222,13 +210,81 @@ CREATE SEQUENCE public.players_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.players_id_seq OWNER TO postgres;
+ALTER TABLE public.players_id_seq OWNER TO postgres;
 
 --
 -- Name: players_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.players_id_seq OWNED BY public.players.id;
+
+
+--
+-- Name: roles; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.roles (
+    id integer NOT NULL,
+    name character varying NOT NULL
+);
+
+
+ALTER TABLE public.roles OWNER TO postgres;
+
+--
+-- Name: roles_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.roles_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.roles_id_seq OWNER TO postgres;
+
+--
+-- Name: roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.roles_id_seq OWNED BY public.roles.id;
+
+
+--
+-- Name: roles_in_game; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.roles_in_game (
+    id integer NOT NULL,
+    name character varying NOT NULL
+);
+
+
+ALTER TABLE public.roles_in_game OWNER TO postgres;
+
+--
+-- Name: roles_in_game_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.roles_in_game_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.roles_in_game_id_seq OWNER TO postgres;
+
+--
+-- Name: roles_in_game_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.roles_in_game_id_seq OWNED BY public.roles_in_game.id;
 
 
 --
@@ -260,7 +316,7 @@ CREATE SEQUENCE public.team_invites_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.team_invites_id_seq OWNER TO postgres;
+ALTER TABLE public.team_invites_id_seq OWNER TO postgres;
 
 --
 -- Name: team_invites_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -298,7 +354,7 @@ CREATE SEQUENCE public.teams_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.teams_id_seq OWNER TO postgres;
+ALTER TABLE public.teams_id_seq OWNER TO postgres;
 
 --
 -- Name: teams_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -315,7 +371,8 @@ CREATE TABLE public.users (
     id integer NOT NULL,
     email character varying NOT NULL,
     password character varying NOT NULL,
-    role public.users_role_enum DEFAULT 'player'::public.users_role_enum NOT NULL
+    role_id integer,
+    "createdAt" timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -334,7 +391,7 @@ CREATE SEQUENCE public.users_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.users_id_seq OWNER TO postgres;
+ALTER TABLE public.users_id_seq OWNER TO postgres;
 
 --
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -379,6 +436,20 @@ ALTER TABLE ONLY public.players ALTER COLUMN id SET DEFAULT nextval('public.play
 
 
 --
+-- Name: roles id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.roles ALTER COLUMN id SET DEFAULT nextval('public.roles_id_seq'::regclass);
+
+
+--
+-- Name: roles_in_game id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.roles_in_game ALTER COLUMN id SET DEFAULT nextval('public.roles_in_game_id_seq'::regclass);
+
+
+--
 -- Name: team_invites id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -404,10 +475,68 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 COPY public.activity_logs (id, action, "targetType", "targetId", detail, "createdAt", "userId") FROM stdin;
-1	create_team	team	3	{"name":"Team test","description":"Đội tuyển hàng đầu"}	2025-07-09 16:48:25.025817	1
-2	update_user	user	2	{"before":{"id":2,"email":"player1@example.com","password":"$2b$10$d2oDWQy1KYTjEVIe3CaOaeVA71wKa1WvSs4trFtHKDNbJ0CJrn5NO","role":"player"},"after":{"id":2,"email":"newemail@example.com","role":"player"}}	2025-07-10 00:45:14.416349	1
-3	change_password	user	2	{"userId":2}	2025-07-10 00:47:51.87878	2
-4	update_profile	user	2	{"before":{"id":2,"email":"newemail@example.com","password":"$2b$10$1STanK5Wm7vGHHQYArnkAufA9OiherwYmO.jJosYc0HmdOiy8lh4a","role":"player","player":{"id":2,"fullName":"Nguyễn Văn A","ign":"ProGamer123","role":"ADC","gameAccount":"account123","createdAt":"2025-07-09T08:58:43.998Z","updatedAt":"2025-07-09T17:48:43.964Z"}},"after":{"id":2,"email":"updated@example.com","password":"$2b$10$1STanK5Wm7vGHHQYArnkAufA9OiherwYmO.jJosYc0HmdOiy8lh4a","role":"player","player":{"id":2,"fullName":"Nguyễn Văn A","ign":"ProGamer123","role":"ADC","gameAccount":"account123","createdAt":"2025-07-09T08:58:43.998Z","updatedAt":"2025-07-09T17:48:43.964Z"}}}	2025-07-10 00:48:43.965722	2
+1	create_event	event	29	{"title":"LOL","startTime":"2025-07-16 00:00:00","endTime":"2025-07-17 00:00:00","type":"Thi đấu","teamId":3,"location":"Hà Nội","description":"ada2fwàd"}	2025-07-15 23:01:38.96168	1
+2	delete_event	event	29	{"title":"LOL"}	2025-07-15 23:04:38.215032	1
+3	update_event	event	28	{"before":{"id":28,"title":"Test Sự kiện sắp diễn ra","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17T05:12:08.947Z","endTime":"2025-07-17T08:12:08.947Z","type":"Luyện tập","note":"Test event upcoming","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Test Sự kiện sắp diễn ra","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17 00:00:00","endTime":"2025-07-17 00:00:00","type":"Luyện tập","note":"Test event","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-15 23:10:10.667481	1
+4	update_event	event	28	{"before":{"id":28,"title":"Test Sự kiện sắp diễn ra","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-16T17:00:00.000Z","endTime":"2025-07-16T17:00:00.000Z","type":"Luyện tập","note":"Test event","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"Test event","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-15 23:11:28.554588	1
+5	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"Test event","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-15 23:11:35.464051	1
+6	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-16 00:16:43.733931	1
+7	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-16 00:16:56.17253	1
+8	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-16 00:20:24.523572	1
+9	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-16 00:21:13.309551	1
+10	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup 1","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-16 00:21:23.8241	1
+11	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup 1","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Phòng test","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup 1","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z","teamId":1}}	2025-07-16 00:24:39.616535	1
+12	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup 1","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z","teamId":3}}	2025-07-16 00:26:14.91391	1
+13	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z","teamId":3}}	2025-07-16 00:27:32.309548	1
+14	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Luyện tập","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z","teamId":3}}	2025-07-16 00:27:40.293314	1
+15	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-16T17:00:00.000Z","endTime":"2053-03-08T17:00:00.000Z","type":"Luyện tập","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":1,"email":"admin@example.com","password":"$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC","refreshToken":null},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-15T05:12:08.947Z","teamId":3}}	2025-07-16 00:27:47.153381	1
+16	update_event	event	28	{"before":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":2,"name":"Team Beta","description":"Đội tuyển phụ, chuyên về đào tạo và phát triển tài năng mới.","createdAt":"2025-07-15T04:46:31.466Z","updatedAt":"2025-07-15T04:46:31.466Z"},"createdAt":"2025-07-15T05:12:08.947Z"},"after":{"id":28,"title":"Summer Rift Cup","description":"Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17 00:00:00","endTime":"2053-03-09 00:00:00","type":"Thi đấu","note":"","team":{"id":2,"name":"Team Beta","description":"Đội tuyển phụ, chuyên về đào tạo và phát triển tài năng mới.","createdAt":"2025-07-15T04:46:31.466Z","updatedAt":"2025-07-15T04:46:31.466Z"},"createdAt":"2025-07-15T05:12:08.947Z"}}	2025-07-16 00:38:37.661546	1
+17	change_password	user	9	{"userId":9}	2025-07-16 23:33:36.030349	9
+18	create_player	player	1	{"fullName":"Trần Thị F","ign":"124f","roleInGame":"ADC","gameAccount":"abcxyz"}	2025-07-17 00:58:42.873035	9
+19	create_event	event	30	{"title":"LOL","startTime":"2025-07-18 00:00:00","endTime":"2025-07-19 00:00:00","type":"Thi đấu","teamId":3,"location":"Nhà thi đấu GG Stadium","description":"12fadq"}	2025-07-17 11:53:15.068794	1
+20	update_event	event	30	{"before":{"id":30,"title":"LOL","description":"12fadqfà","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-18 00:00:00","endTime":"2025-07-19 00:00:00","type":"Thi đấu","note":null,"team":{"id":3,"name":"Team Gamma","description":"Đội tuyển trẻ, tập trung vào các giải đấu cấp cơ sở.","leader":{"id":4,"email":"leader3@example.com","password":"$2b$10$/27Pa6qMsL.ZO1BbAizbJO/zG24XNcwuMI4AkroXyaROGs1K2zkc.","createdAt":"2025-07-16T05:23:11.881Z"},"createdAt":"2025-07-15T04:46:31.466Z","updatedAt":"2025-07-15T04:46:31.466Z"},"createdAt":"2025-07-17T04:53:15.047Z"},"after":{"id":30,"title":"LOL","description":"12fadqfà","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-18 00:00:00","endTime":"2025-07-19 00:00:00","type":"Thi đấu","note":null,"team":{"id":3,"name":"Team Gamma","description":"Đội tuyển trẻ, tập trung vào các giải đấu cấp cơ sở.","leader":{"id":4,"email":"leader3@example.com","password":"$2b$10$/27Pa6qMsL.ZO1BbAizbJO/zG24XNcwuMI4AkroXyaROGs1K2zkc.","createdAt":"2025-07-16T05:23:11.881Z"},"createdAt":"2025-07-15T04:46:31.466Z","updatedAt":"2025-07-15T04:46:31.466Z"},"createdAt":"2025-07-17T04:53:15.047Z"}}	2025-07-17 11:53:30.442679	1
+21	delete_event	event	30	{"title":"LOL"}	2025-07-17 11:53:36.90483	1
+22	create_event	event	31	{"title":"dâd fsf","startTime":"2025-07-17T17:00:00.000Z","endTime":"2025-07-18T17:00:00.000Z","type":"Thi đấu","teamId":1,"location":"Nhà thi đấu GG Stadium","description":"414rqdf5"}	2025-07-17 11:54:23.900298	2
+23	update_event	event	31	{"before":{"id":31,"title":"dâd fsf","description":"414rqdf5dâd","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17T17:00:00.000Z","endTime":"2025-07-18T17:00:00.000Z","type":"Thi đấu","note":null,"team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":2,"email":"leader@example.com","password":"$2b$10$RdAkzOnNY3lxYlGxZgZTN.K/ETMAzJDxZmPxEd7wko5zo3DS1DlyC","createdAt":"2025-07-16T05:23:11.881Z"},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-17T04:54:23.895Z"},"after":{"id":31,"title":"dâd fsf","description":"414rqdf5dâd","location":"Nhà thi đấu GG Stadium","startTime":"2025-07-17T17:00:00.000Z","endTime":"2025-07-18T17:00:00.000Z","type":"Thi đấu","note":null,"team":{"id":1,"name":"Team Alpha","description":"Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.","leader":{"id":2,"email":"leader@example.com","password":"$2b$10$RdAkzOnNY3lxYlGxZgZTN.K/ETMAzJDxZmPxEd7wko5zo3DS1DlyC","createdAt":"2025-07-16T05:23:11.881Z"},"createdAt":"2025-07-15T04:36:45.229Z","updatedAt":"2025-07-15T04:36:45.229Z"},"createdAt":"2025-07-17T04:54:23.895Z"}}	2025-07-17 11:54:30.969434	2
+24	delete_event	event	31	{"title":"dâd fsf"}	2025-07-17 11:54:35.319236	2
+25	add_member_to_team	team	1	{"memberId":1,"memberName":"Trần Thị F"}	2025-07-17 13:25:36.631326	2
+26	remove_member_from_team	team	1	{"memberId":1}	2025-07-17 13:31:19.398969	2
+27	add_member_to_team	team	1	{"memberId":1,"memberName":"Trần Thị F"}	2025-07-17 13:35:59.767227	2
+28	remove_member_from_team	team	1	{"memberId":1}	2025-07-17 13:36:11.068463	2
+29	accept_invite	team_invite	1	{"teamId":1}	2025-07-17 13:42:36.790397	\N
+30	leave_team	team	1	{"teamName":"Team Alpha","userName":"player1@example.com"}	2025-07-17 13:51:11.364837	9
+31	accept_invite	team_invite	2	{"teamId":1}	2025-07-17 13:57:36.593007	\N
+32	leave_team	team	1	{"teamName":"Team Alpha","userName":"player1@example.com"}	2025-07-17 13:58:35.520967	9
+33	accept_invite	team_invite	3	{"teamId":1}	2025-07-17 13:59:58.625509	\N
+34	leave_team	team	1	{"teamName":"Team Alpha","userName":"player1@example.com"}	2025-07-17 14:00:05.851002	9
+35	accept_invite	team_invite	4	{"teamId":1}	2025-07-17 14:03:13.998909	\N
+36	remove_member_from_team	team	1	{"memberId":1}	2025-07-17 14:03:20.653956	2
+37	accept_invite	team_invite	5	{"teamId":1}	2025-07-17 14:16:59.492665	\N
+38	remove_member_from_team	team	1	{"memberId":1}	2025-07-17 14:17:04.661759	2
+39	create_team	team	4	{"name":"Analyst","description":"Phân tích đối thủ","leaderId":12}	2025-07-17 21:51:33.837383	1
+40	accept_invite	team_invite	6	{"teamId":4}	2025-07-17 21:57:16.512306	\N
+42	accept_invite	team_invite	7	{"teamId":4}	2025-07-17 22:04:34.542495	\N
+44	accept_invite	team_invite	8	{"teamId":4}	2025-07-17 22:06:41.448327	\N
+46	accept_invite	team_invite	9	{"teamId":4}	2025-07-17 22:19:15.303878	\N
+48	accept_invite	team_invite	10	{"teamId":4}	2025-07-17 22:22:18.922882	\N
+50	accept_invite	team_invite	11	{"teamId":4}	2025-07-17 22:29:37.07192	\N
+52	accept_invite	team_invite	12	{"teamId":4}	2025-07-17 22:31:46.851722	\N
+53	leave_team	team	4	{"teamName":"Analyst","userName":"player1@example.com"}	2025-07-17 22:34:41.505821	9
+54	delete_user	user	11	{"deletedUser":{"email":"lethong@gmail.com","role":"leader"}}	2025-07-17 22:41:05.002322	1
+55	delete_user	user	10	{"deletedUser":{"email":"player2@example.com","role":"leader"}}	2025-07-17 22:41:12.448982	1
+56	delete_user	user	12	{"deletedUser":{"email":"lethong1@gmail.com","role":"leader"}}	2025-07-17 22:57:40.636621	1
+57	delete_user	user	15	{"deletedUser":{"email":"player3@example.com","role":"player"}}	2025-07-17 23:11:33.95513	1
+58	delete_user	user	16	{"deletedUser":{"email":"player4@example.com","role":"player"}}	2025-07-17 23:38:32.174298	1
+59	delete_user	user	14	{"deletedUser":{"email":"player2@example.com","role":"player"}}	2025-07-17 23:38:34.383658	1
+60	delete_user	user	19	{"deletedUser":{"email":"player4@example.com","role":"player"}}	2025-07-17 23:42:29.64783	1
+61	delete_user	user	18	{"deletedUser":{"email":"player3@example.com","role":"player"}}	2025-07-17 23:46:13.448244	1
+62	delete_user	user	20	{"deletedUser":{"email":"player3@example.com","role":"player"}}	2025-07-17 23:49:29.88955	1
+63	create_player	player	2	{"fullName":"Nguyễn Thị Minh Duyên","ign":"mingzieng","roleInGame":"ADC","gameAccount":"mingzieng"}	2025-07-17 23:57:50.596047	21
+64	accept_invite	team_invite	13	{"teamId":1}	2025-07-17 23:59:11.150011	\N
+65	create_player	player	3	{"fullName":"Le Van A","ign":"i am a hunter","roleInGame":"Top","gameAccount":"hunter1"}	2025-07-18 00:13:38.659941	17
+66	reject_invite	team_invite	14	{"teamId":2}	2025-07-18 00:20:44.609121	\N
+67	reject_invite	team_invite	15	{"teamId":2}	2025-07-18 00:24:50.753814	\N
+68	accept_invite	team_invite	16	{"teamId":2}	2025-07-18 00:25:03.811642	\N
 \.
 
 
@@ -416,7 +545,6 @@ COPY public.activity_logs (id, action, "targetType", "targetId", detail, "create
 --
 
 COPY public.attendance (id, status, note, "createdAt", "updatedAt", "eventId", "playerId") FROM stdin;
-1	present	Có mặt đúng giờ	2025-07-09 16:05:36.941842	2025-07-09 16:10:18.14286	1	2
 \.
 
 
@@ -424,8 +552,28 @@ COPY public.attendance (id, status, note, "createdAt", "updatedAt", "eventId", "
 -- Data for Name: events; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.events (id, title, "startTime", "endTime", type, note, "createdAt", "updatedAt", "teamId") FROM stdin;
-1	Luyện tập test	2025-07-11 01:00:00	2025-07-11 03:00:00	Luyện tập	Tập trung đúng giờ	2025-07-09 16:05:36.936925	2025-07-09 16:05:36.936925	1
+COPY public.events (id, title, "startTime", "endTime", type, note, "createdAt", "teamId", description, location) FROM stdin;
+1	eTeamHub Future Showdown	2024-08-01 09:00:00	2024-08-01 18:00:00	Thi đấu		2025-07-15 11:23:18.012872	1	Giải đấu sắp diễn ra dành cho các đội mới.	Hà Nội
+2	eTeamHub Spring Classic	2024-05-01 09:00:00	2024-05-01 18:00:00	Thi đấu		2025-07-15 11:23:58.005081	1	Giải đấu đã kết thúc thành công.	Đà Nẵng
+19	Luyện tập chiến thuật mới	2024-08-01 14:00:00	2024-08-01 17:00:00	Luyện tập	Chuẩn bị tài liệu chiến thuật, mang laptop để phân tích video. Tập trung vào kỹ năng teamwork.	2025-07-15 11:46:46.793915	1	Tập luyện các chiến thuật mới cho giải đấu quốc gia sắp tới.	Phòng tập chính - Trung tâm eSports
+20	Trận đấu giao hữu với Team Pro	2025-07-15 11:46:46.793915	2025-07-15 14:46:46.793915	Thi đấu	Đang diễn ra sôi nổi, team đang thể hiện tốt. Cần duy trì phong độ.	2025-07-15 11:46:46.793915	1	Đấu giao hữu với đội chuyên nghiệp để test kỹ năng.	Sân thi đấu chính - Trung tâm eSports
+21	Buổi tập tuần trước	2024-07-15 09:00:00	2024-07-15 12:00:00	Luyện tập	Đã hoàn thành tốt, team đã cải thiện đáng kể về khả năng phối hợp.	2025-07-15 11:46:46.793915	1	Luyện tập kỹ năng teamwork và giao tiếp trong game.	Phòng tập VIP - Trung tâm eSports
+22	Workshop kỹ năng cơ bản	2024-08-05 10:00:00	2024-08-05 16:00:00	Training	Chuẩn bị tài liệu hướng dẫn, đồng phục team. Dành cho thành viên mới.	2025-07-15 11:46:46.793915	2	Buổi workshop dành cho thành viên mới, tập trung vào kỹ năng cơ bản.	Phòng họp A - Trung tâm eSports
+23	Giải đấu nội bộ Team Beta	2024-07-25 08:00:00	2024-07-25 18:00:00	Thi đấu	Đã tham gia và đạt kết quả tốt. Học được nhiều kinh nghiệm từ các thành viên khác.	2025-07-15 11:46:46.793915	2	Giải đấu giữa các thành viên trong team để đánh giá trình độ.	Sân thi đấu phụ - Trung tâm eSports
+24	Buổi tập cường độ cao	2025-07-15 10:46:46.793915	2025-07-15 13:46:46.793915	Luyện tập	Đang tập trung cao độ, hiệu quả rất tốt. Cần duy trì cường độ này.	2025-07-15 11:46:46.793915	2	Luyện tập với cường độ cao để chuẩn bị cho giải đấu cấp tỉnh.	Phòng tập chuyên dụng - Trung tâm eSports
+25	Định hướng cho thành viên mới	2024-08-10 09:00:00	2024-08-10 15:00:00	Training	Chuẩn bị tài liệu giới thiệu, đồng phục team, và các quy định nội bộ. Dành cho thành viên mới.	2025-07-15 11:46:46.793915	3	Buổi định hướng và training cho các thành viên mới gia nhập team.	Phòng họp B - Trung tâm eSports
+3	eTeamHub My Upcoming Event	2024-08-10 09:00:00	2024-08-10 18:00:00	Thi đấu		2025-07-15 11:24:09.429954	2	Sự kiện bạn đã tham gia và sắp diễn ra.	Hải Phòng
+5	Quick Practice Match	2025-07-15 10:26:04.944415	2025-07-15 13:26:04.944415	Luyện tập	Đang diễn ra sôi nổi, team đang thể hiện tốt	2025-07-15 11:26:04.944415	2	Trận đấu luyện tập nhanh đang diễn ra.	Vũng Tàu
+7	Intensive Practice Session	2024-06-20 08:00:00	2024-06-20 18:00:00	Luyện tập	Đã tham gia đầy đủ, hiệu quả rất tốt. Cần duy trì cường độ này	2025-07-15 11:26:33.474426	2	Buổi luyện tập cường độ cao đã tham gia.	Cần Thơ
+4	Friendly Match vs Team Alpha	2024-08-15 15:00:00	2024-08-15 18:00:00	Thi đấu	Đây là cơ hội tốt để test kỹ năng. Chuẩn bị tinh thần thi đấu fair play	2025-07-15 11:25:48.933231	3	Trận đấu giao hữu với đội Alpha.	Huế
+10	Advanced Team Training	2025-07-15 11:27:12.023487	2025-07-15 14:27:12.023487	Training	Buổi training quan trọng, không được vắng mặt. Chuẩn bị tài liệu trước	2025-07-15 11:27:12.023487	3	Khóa đào tạo nâng cao cho các thành viên mới.	TP. Hồ Chí Minh
+6	Strategy Workshop	2024-08-05 13:00:00	2024-08-05 17:00:00	Training	Đã đăng ký tham gia. Chuẩn bị laptop để phân tích video trận đấu	2025-07-15 11:26:15.557356	3	Workshop về chiến thuật và phân tích trận đấu.	Nha Trang
+11	Team Practice Session	2024-07-25 14:00:00	2024-07-25 17:00:00	Luyện tập	Mang theo thiết bị cá nhân, chuẩn bị tinh thần tập trung cao độ	2025-07-15 11:27:24.733677	1	Buổi luyện tập kỹ năng teamwork và chiến thuật.	Hà Nội
+8	New Member Orientation	2024-07-30 10:00:00	2024-07-30 16:00:00	Training	Chuẩn bị tài liệu giới thiệu, đồng phục team, và các quy định nội bộ	2025-07-15 11:26:44.839887	1	Định hướng và training cho thành viên mới gia nhập.	Hải Phòng
+9	Weekly Team Practice	2024-07-15 09:00:00	2024-07-15 12:00:00	Luyện tập	Đã hoàn thành tốt, team đã cải thiện đáng kể về teamwork	2025-07-15 11:26:56.557866	1	Buổi luyện tập hàng tuần đã hoàn thành.	Đà Nẵng
+26	Giải đấu cấp cơ sở	2024-08-15 14:00:00	2024-08-15 20:00:00	Thi đấu	Giải đấu quan trọng cho đội trẻ, cần chuẩn bị kỹ lưỡng và tinh thần thi đấu cao.	2025-07-15 11:46:46.793915	3	Tham gia giải đấu cấp cơ sở dành cho các đội trẻ.	Trung tâm thi đấu cơ sở
+27	Luyện tập kỹ năng cơ bản	2024-07-20 13:00:00	2024-07-20 16:00:00	Luyện tập	Đã hoàn thành tốt, các thành viên mới đã nắm được kỹ năng cơ bản.	2025-07-15 11:46:46.793915	3	Tập luyện các kỹ năng cơ bản cho thành viên mới.	Phòng tập cơ bản - Trung tâm eSports
+28	Summer Rift Cup	2025-07-17 00:00:00	2053-03-09 00:00:00	Thi đấu		2025-07-15 12:12:08.947364	2	Sự kiện này dùng để test hiển thị trạng thái sắp diễn ra.	Nhà thi đấu GG Stadium
 \.
 
 
@@ -434,10 +582,24 @@ COPY public.events (id, title, "startTime", "endTime", type, note, "createdAt", 
 --
 
 COPY public.notifications (id, content, "isRead", type, "createdAt", "userId") FROM stdin;
-1	Bạn được mời vào team Team Alpha	f	invite	2025-07-09 16:04:04.462159	2
-2	Bạn được mời vào team Team Alpha	f	invite	2025-07-09 16:04:11.091133	3
-3	Team Team Alpha có sự kiện mới: Luyện tập test	f	event	2025-07-09 16:05:36.944348	2
-4	Player Player Name 1 đã tham gia sự kiện Luyện tập test	f	rsvp	2025-07-09 16:05:56.830166	1
+1	Bạn được mời vào team Team Alpha	f	invite	2025-07-17 13:37:49.424264	9
+2	Bạn được mời vào team Team Alpha	f	invite	2025-07-17 13:51:23.536636	9
+3	Bạn được mời vào team Team Alpha	f	invite	2025-07-17 13:58:42.944193	9
+4	Bạn được mời vào team Team Alpha	f	invite	2025-07-17 14:00:13.061026	9
+5	Bạn được mời vào team Team Alpha	f	invite	2025-07-17 14:04:36.637369	9
+6	Bạn được mời vào team Analyst	f	invite	2025-07-17 21:56:59.37247	9
+7	Bạn được mời vào team Analyst	f	invite	2025-07-17 22:04:29.770117	9
+8	Bạn được mời vào team Analyst	f	invite	2025-07-17 22:06:36.786882	9
+9	Bạn được mời vào team Analyst	f	invite	2025-07-17 22:19:07.143346	9
+10	Bạn được mời vào team Analyst	f	invite	2025-07-17 22:22:15.9946	9
+11	Bạn được mời vào team Analyst	f	invite	2025-07-17 22:29:32.037171	9
+12	Bạn được mời vào team Analyst	f	invite	2025-07-17 22:31:42.578246	9
+13	Bạn được mời vào team Team Alpha	f	invite	2025-07-17 23:58:34.240353	21
+14	Bạn được mời vào team Team Beta	f	invite	2025-07-18 00:20:06.56691	17
+15	Player Le Van A đã từ chối lời mời vào team Team Beta	f	invite	2025-07-18 00:20:44.607054	3
+16	Bạn được mời vào team Team Beta	f	invite	2025-07-18 00:23:34.257817	17
+17	Player Le Van A đã từ chối lời mời vào team Team Beta	f	invite	2025-07-18 00:24:50.744711	3
+18	Bạn được mời vào team Team Beta	f	invite	2025-07-18 00:24:53.167049	17
 \.
 
 
@@ -445,22 +607,34 @@ COPY public.notifications (id, content, "isRead", type, "createdAt", "userId") F
 -- Data for Name: players; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.players (id, "fullName", ign, role, "gameAccount", "createdAt", "updatedAt", "userId", "teamId") FROM stdin;
-1	Leader Name	LeaderIGN	Top	Leader#123	2025-07-09 15:58:20.213882	2025-07-09 15:58:20.213882	1	\N
-3	Player Name 3	Player3IGN	ADC	Player3#456	2025-07-09 16:00:08.477241	2025-07-09 16:00:08.477241	3	\N
-4	Player Name 4	Player4IGN	ADC	Player4#456	2025-07-09 16:00:11.065139	2025-07-09 16:00:11.065139	4	\N
-5	Player Name 5	Player5IGN	ADC	Player5#456	2025-07-09 16:00:12.760271	2025-07-09 16:00:12.760271	5	\N
-6	Player Name 6	Player6IGN	ADC	Player6#456	2025-07-09 16:00:14.4626	2025-07-09 16:00:14.4626	6	\N
-7	Player Name 7	Player7IGN	ADC	Player7#456	2025-07-09 16:00:16.037177	2025-07-09 16:00:16.037177	7	\N
-8	Player Name 8	Player8IGN	ADC	Player8#456	2025-07-09 16:00:17.873095	2025-07-09 16:00:17.873095	8	\N
-9	Player Name 9	Player9IGN	ADC	Player9#456	2025-07-09 16:00:19.846834	2025-07-09 16:00:19.846834	9	\N
-10	Player Name 10	Player10IGN	ADC	Player10#456	2025-07-09 16:00:21.773958	2025-07-09 16:00:21.773958	10	\N
-11	Player Name 11	Player11IGN	ADC	Player11#456	2025-07-09 16:00:23.4861	2025-07-09 16:00:23.4861	11	\N
-12	Player Name 12	Player12IGN	ADC	Player12#456	2025-07-09 16:00:25.604608	2025-07-09 16:00:25.604608	12	\N
-13	Player Name 13	Player13IGN	ADC	Player13#456	2025-07-09 16:00:27.32041	2025-07-09 16:00:27.32041	13	\N
-14	Player Name 14	Player14IGN	ADC	Player14#456	2025-07-09 16:00:29.227238	2025-07-09 16:00:29.227238	14	\N
-15	Player Name 15	Player15IGN	ADC	Player15#456	2025-07-09 16:00:30.97074	2025-07-09 16:00:30.97074	15	\N
-2	Nguyễn Văn A	ProGamer123	ADC	account123	2025-07-09 15:58:43.998712	2025-07-10 00:48:43.964227	2	1
+COPY public.players (id, "fullName", ign, "gameAccount", "createdAt", "updatedAt", "roleInGameId", "userId", "teamId") FROM stdin;
+1	Trần Thị F	124f	abcxyz	2025-07-17 00:58:42.862736	2025-07-17 22:34:41.497632	4	9	\N
+2	Nguyễn Thị Minh Duyên	mingzieng	mingzieng	2025-07-17 23:57:50.591236	2025-07-17 23:59:11.136062	4	21	1
+3	Le Van A	i am a hunter	hunter1	2025-07-18 00:13:38.651224	2025-07-18 00:25:03.804487	1	17	2
+\.
+
+
+--
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.roles (id, name) FROM stdin;
+1	admin
+2	leader
+3	player
+\.
+
+
+--
+-- Data for Name: roles_in_game; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.roles_in_game (id, name) FROM stdin;
+1	Top
+2	Jungle
+3	Mid
+4	ADC
+5	Support
 \.
 
 
@@ -469,8 +643,22 @@ COPY public.players (id, "fullName", ign, role, "gameAccount", "createdAt", "upd
 --
 
 COPY public.team_invites (id, status, "createdAt", "updatedAt", "teamId", "playerId") FROM stdin;
-2	pending	2025-07-09 16:04:11.088455	2025-07-09 16:04:11.088455	1	3
-1	accepted	2025-07-09 16:04:04.459499	2025-07-09 16:05:14.747841	1	2
+1	accepted	2025-07-17 13:37:49.420125	2025-07-17 13:42:36.785788	1	1
+2	accepted	2025-07-17 13:51:23.531743	2025-07-17 13:57:36.589542	1	1
+3	accepted	2025-07-17 13:58:42.937479	2025-07-17 13:59:58.622283	1	1
+4	accepted	2025-07-17 14:00:13.050759	2025-07-17 14:03:13.996186	1	1
+5	accepted	2025-07-17 14:04:36.627549	2025-07-17 14:16:59.489618	1	1
+6	accepted	2025-07-17 21:56:59.362881	2025-07-17 21:57:16.510954	4	1
+7	accepted	2025-07-17 22:04:29.76171	2025-07-17 22:04:34.540978	4	1
+8	accepted	2025-07-17 22:06:36.781107	2025-07-17 22:06:41.446251	4	1
+9	accepted	2025-07-17 22:19:07.13973	2025-07-17 22:19:15.300965	4	1
+10	accepted	2025-07-17 22:22:15.991819	2025-07-17 22:22:18.920221	4	1
+11	accepted	2025-07-17 22:29:32.03348	2025-07-17 22:29:37.06967	4	1
+12	accepted	2025-07-17 22:31:42.568898	2025-07-17 22:31:46.849895	4	1
+13	accepted	2025-07-17 23:58:34.231163	2025-07-17 23:59:11.147767	1	2
+14	rejected	2025-07-18 00:20:06.558115	2025-07-18 00:20:44.593074	2	3
+15	rejected	2025-07-18 00:23:34.248495	2025-07-18 00:24:50.733893	2	3
+16	accepted	2025-07-18 00:24:53.157402	2025-07-18 00:25:03.809463	2	3
 \.
 
 
@@ -479,9 +667,10 @@ COPY public.team_invites (id, status, "createdAt", "updatedAt", "teamId", "playe
 --
 
 COPY public.teams (id, name, description, "createdAt", "updatedAt", "leaderId") FROM stdin;
-1	Team Alpha	Đội tuyển hàng đầu	2025-07-09 16:03:33.639366	2025-07-09 16:03:33.639366	1
-2	Team Alpha 2	Đội tuyển hàng đầu	2025-07-09 16:03:40.750706	2025-07-09 16:03:40.750706	1
-3	Team test	Đội tuyển hàng đầu	2025-07-09 16:48:25.018987	2025-07-09 16:48:25.018987	1
+2	Team Beta	Đội tuyển phụ, chuyên về đào tạo và phát triển tài năng mới.	2025-07-15 11:46:31.466234	2025-07-15 11:46:31.466234	3
+3	Team Gamma	Đội tuyển trẻ, tập trung vào các giải đấu cấp cơ sở.	2025-07-15 11:46:31.466234	2025-07-15 11:46:31.466234	4
+1	Team Alpha	Đội tuyển chính của hệ thống, tập trung vào các giải đấu lớn.	2025-07-15 11:36:45.229768	2025-07-15 11:36:45.229768	2
+4	Analyst	Phân tích đối thủ	2025-07-17 21:51:33.820867	2025-07-17 22:56:00.600587	\N
 \.
 
 
@@ -489,22 +678,15 @@ COPY public.teams (id, name, description, "createdAt", "updatedAt", "leaderId") 
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.users (id, email, password, role) FROM stdin;
-3	player3@example.com	$2b$10$ycu/5joW2tr5uUgbHO9bLuemxtLcgk9a2KzvFNvzMEDnMS2kHIr9i	player
-4	player4@example.com	$2b$10$wt/nJ6TU5K8vGVbjBIWbDOcdV/hEKvB6XVtiIrtLFIUEKjHBQfDOK	player
-5	player5@example.com	$2b$10$WywNilhuhEyKS29C8r74D.4akEH19xQCD2RPd6VzbPRGgpXHmGMpq	player
-6	player6@example.com	$2b$10$C199dRpwgJuzgNxxmNqx5.YD6SQ72V27jixbaWuuXES3rGOEBHLJ.	player
-7	player7@example.com	$2b$10$q93c7y75Tb36m8.AYJgX8ull8e0OyRS4SQBEwfHa847I8t.MiHWp6	player
-8	player8@example.com	$2b$10$0gQevhIJGYc5rBS0/petp.rUWYZBLJKPWWGAWXuBbTakquLH8Chau	player
-9	player9@example.com	$2b$10$s4NkHCUJWrhhcnlhSrrDVO8vtjo9vMX/Yfrl0MvK.TxJhZAF/Gn02	player
-10	player10@example.com	$2b$10$70bar.Cnwn7bl6So20NESe7GM2z3hFaOtD7dqz/AYPs7c3lPWKJvW	player
-11	player11@example.com	$2b$10$sq8rRwcNUz/aP03jFPDnaOswPOOxAWNC.vse/Qkm5Df08UsxvHLEi	player
-12	player12@example.com	$2b$10$XFZxZmz.n3AUvNiyQtLoTOS33EtvhSc0FtwpkGX0EeEOA5c43Tbwu	player
-13	player13@example.com	$2b$10$klEgQaQpQtZWq5Vo.222IuX64NUK.CueigehgMfchPf4WU1OKU8xO	player
-14	player14@example.com	$2b$10$9DZOggMg65Jof6UqBcHZhe2IqnoXRd3aUoBp6PEWP5.cGx4A7gHyu	player
-15	player15@example.com	$2b$10$Aa5MLp/xxyxjvNA4Yb.ri.rLqYYPyZP4Kx2bxiAp1bU80tRUPxy2y	player
-1	leader@example.com	$2b$10$TXFvqkALy7kQIT/Ny6biSuXgj6/0Cvhj/kcNp9uV4SXj6w7JzZZDe	player
-2	updated@example.com	$2b$10$1STanK5Wm7vGHHQYArnkAufA9OiherwYmO.jJosYc0HmdOiy8lh4a	player
+COPY public.users (id, email, password, role_id, "createdAt") FROM stdin;
+1	admin@example.com	$2b$10$qZps8IhgGVtZ8jIdWUolWeDiEExCc3w4CLL5BrohGMNsftgdn4dRC	1	2025-07-16 12:23:11.881395
+2	leader@example.com	$2b$10$RdAkzOnNY3lxYlGxZgZTN.K/ETMAzJDxZmPxEd7wko5zo3DS1DlyC	2	2025-07-16 12:23:11.881395
+3	leader2@example.com	$2b$10$N42GYYnPztYRLRMRevWNyuqmWSyNfOhtqWgRbyx4ttYj8S1jhkxv2	2	2025-07-16 12:23:11.881395
+4	leader3@example.com	$2b$10$/27Pa6qMsL.ZO1BbAizbJO/zG24XNcwuMI4AkroXyaROGs1K2zkc.	2	2025-07-16 12:23:11.881395
+9	player1@example.com	$2b$10$2Nf1DyomEYysw.wmyjB6E.K1mvoum2GSqOcFH3auF01ny9d/nT.Sq	3	2025-07-16 23:31:04.118914
+13	leader1@example.com	$2b$10$Uglex7pKq14temJ5QjQn6usepppjwqd60hvvr0vmGL9ZmLWpX9O/i	2	2025-07-17 22:58:02.654542
+17	player2@example.com	$2b$10$YfT0HRwFi0tfMA2L6YCa6ePGLNaeQO744OBiKY3hNMj.dlm6K3hj2	3	2025-07-17 23:38:49.706942
+21	player3@example.com	$2b$10$TUxd7zawNBeU3JtbOAGQoOHrdBe7SrQhuWna9TmLjy9mesx0OLJmK	3	2025-07-17 23:56:33.231325
 \.
 
 
@@ -512,56 +694,70 @@ COPY public.users (id, email, password, role) FROM stdin;
 -- Name: activity_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.activity_logs_id_seq', 4, true);
+SELECT pg_catalog.setval('public.activity_logs_id_seq', 68, true);
 
 
 --
 -- Name: attendance_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.attendance_id_seq', 1, true);
+SELECT pg_catalog.setval('public.attendance_id_seq', 1, false);
 
 
 --
 -- Name: events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.events_id_seq', 1, true);
+SELECT pg_catalog.setval('public.events_id_seq', 31, true);
 
 
 --
 -- Name: notifications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.notifications_id_seq', 4, true);
+SELECT pg_catalog.setval('public.notifications_id_seq', 18, true);
 
 
 --
 -- Name: players_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.players_id_seq', 15, true);
+SELECT pg_catalog.setval('public.players_id_seq', 3, true);
+
+
+--
+-- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.roles_id_seq', 3, true);
+
+
+--
+-- Name: roles_in_game_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.roles_in_game_id_seq', 6, true);
 
 
 --
 -- Name: team_invites_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.team_invites_id_seq', 2, true);
+SELECT pg_catalog.setval('public.team_invites_id_seq', 16, true);
 
 
 --
 -- Name: teams_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.teams_id_seq', 3, true);
+SELECT pg_catalog.setval('public.teams_id_seq', 4, true);
 
 
 --
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 15, true);
+SELECT pg_catalog.setval('public.users_id_seq', 21, true);
 
 
 --
@@ -578,6 +774,14 @@ ALTER TABLE ONLY public.team_invites
 
 ALTER TABLE ONLY public.events
     ADD CONSTRAINT "PK_40731c7151fe4be3116e45ddf73" PRIMARY KEY (id);
+
+
+--
+-- Name: roles_in_game PK_55c6550732a99bd5a06291317e9; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.roles_in_game
+    ADD CONSTRAINT "PK_55c6550732a99bd5a06291317e9" PRIMARY KEY (id);
 
 
 --
@@ -602,6 +806,14 @@ ALTER TABLE ONLY public.teams
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY (id);
+
+
+--
+-- Name: roles PK_c1433d71a4838793a49dcad46ab; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.roles
+    ADD CONSTRAINT "PK_c1433d71a4838793a49dcad46ab" PRIMARY KEY (id);
 
 
 --
@@ -681,7 +893,7 @@ ALTER TABLE ONLY public.team_invites
 --
 
 ALTER TABLE ONLY public.activity_logs
-    ADD CONSTRAINT "FK_597e6df96098895bf19d4b5ea45" FOREIGN KEY ("userId") REFERENCES public.users(id);
+    ADD CONSTRAINT "FK_597e6df96098895bf19d4b5ea45" FOREIGN KEY ("userId") REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -697,7 +909,7 @@ ALTER TABLE ONLY public.notifications
 --
 
 ALTER TABLE ONLY public.teams
-    ADD CONSTRAINT "FK_6d5c85d3f2602450d1e615afae9" FOREIGN KEY ("leaderId") REFERENCES public.users(id);
+    ADD CONSTRAINT "FK_6d5c85d3f2602450d1e615afae9" FOREIGN KEY ("leaderId") REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -725,11 +937,27 @@ ALTER TABLE ONLY public.players
 
 
 --
+-- Name: users FK_a2cecd1a3531c0b041e29ba46e1; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT "FK_a2cecd1a3531c0b041e29ba46e1" FOREIGN KEY (role_id) REFERENCES public.roles(id);
+
+
+--
 -- Name: attendance FK_a7becef9b64f3b028b81cfa2436; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.attendance
     ADD CONSTRAINT "FK_a7becef9b64f3b028b81cfa2436" FOREIGN KEY ("playerId") REFERENCES public.players(id);
+
+
+--
+-- Name: players FK_e0db292da19b28c3bb61496d2d7; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.players
+    ADD CONSTRAINT "FK_e0db292da19b28c3bb61496d2d7" FOREIGN KEY ("roleInGameId") REFERENCES public.roles_in_game(id);
 
 
 --

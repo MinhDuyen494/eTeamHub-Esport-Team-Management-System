@@ -12,6 +12,7 @@ import { ActivityLogService } from '../activity-log/activity-log.service';
 import * as bcrypt from 'bcryptjs';
 import userMessages from './messages/en';
 import { Team } from '../teams/entities/team.entity';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +21,7 @@ export class UsersService {
     @InjectRepository(Role) private rolesRepo: Repository<Role>,
     @InjectRepository(Player) private playersRepo: Repository<Player>,
     @InjectRepository(RoleInGame) private roleInGameRepo: Repository<RoleInGame>,
+    @InjectRepository(Team) private teamsRepo: Repository<Team>,
     private notificationsService: NotificationsService,
     private activityLogService: ActivityLogService,
   ) {}
@@ -71,11 +73,11 @@ export class UsersService {
           user,
           roleInGame: roleInGameEntity
         });
-        await this.playersRepo.save(player);
+    await this.playersRepo.save(player);
         user.player = player;
       }
     }
-    
+
 
     await this.activityLogService.createLog(
       user,
@@ -183,7 +185,7 @@ export class UsersService {
   async getProfile(userId: number) {
     const user = await this.usersRepo.findOne({
       where: { id: userId },
-      relations: ['player', 'role', 'player.roleInGame'],
+      relations: ['player', 'role', 'player.roleInGame','player.team'],
       select: ['id', 'email'], // không trả password
     });
     if (!user) throw new NotFoundException(userMessages.USER_NOT_FOUND);
@@ -256,7 +258,7 @@ export class UsersService {
       }
     };
   }
-
+  
 
   async createLeaderUser(data: { email: string; password: string; fullName: string }) {
     const existingUser = await this.findByEmail(data.email);
@@ -373,23 +375,144 @@ export class UsersService {
   }
 
   // Admin reset mật khẩu user khác
+
+  // Admin reset mật khẩu user khác
   async adminResetUserPassword(userId: number, newPassword: string, adminUser: User) {
-    if (adminUser.role.name !== 'admin') {
-      throw new ForbiddenException(userMessages.FORBIDDEN);
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException(userMessages.USER_NOT_FOUND);
     }
-    const user = await this.usersRepo.findOne({ where: { id: userId }, relations: ['role'] });
-    if (!user) throw new NotFoundException(userMessages.USER_NOT_FOUND);
-    const hashed = await bcrypt.hash(newPassword, 10);
-    user.password = hashed;
-    await this.usersRepo.save(user);
+
+    // Không cho phép reset password của chính mình
+    if (userId === adminUser.id) {
+      throw new ForbiddenException('Không thể reset password của chính mình');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    
+    const updated = await this.usersRepo.save(user);
+    
     await this.activityLogService.createLog(
       adminUser,
       'admin_reset_password',
       'user',
-      userId,
-      { adminId: adminUser.id, resetUserId: userId }
+      user.id,
+      { resetBy: adminUser.id, resetAt: new Date() }
     );
-    return { newPassword, resetAt: new Date() };
+    
+    return {
+      newPassword,
+      resetAt: new Date()
+    };
+  }
+
+  // API lấy danh sách tất cả users (chỉ admin/leader)
+  async getAllUsers() {
+    const users = await this.usersRepo.find({
+      relations: [
+        'role',
+        'player',
+        'player.roleInGame',
+        'player.team'
+      ],
+      select: ['id', 'email', 'createdAt'],
+      order: { createdAt: 'DESC' }
+    });
+
+    // Lấy tất cả teams để map leader
+    const teamRepo = this.usersRepo.manager.getRepository(Team);
+    const allTeams = await teamRepo.find({ relations: ['leader'] });
+
+    return users.map(user => {
+      // Nếu là leader, tìm team mà leaderId = user.id
+      let leaderTeam: { id: number; name: string } | null = null;
+      if (user.role.name === 'leader') {
+        const found = allTeams.find(team => team.leader && team.leader.id === user.id);
+        if (found) {
+          leaderTeam = { id: found.id, name: found.name };
+        }
+      }
+      return {
+        id: user.id,
+        email: user.email,
+        role: { id: user.role.id, name: user.role.name },
+        createdAt: user.createdAt,
+        player: user.player ? {
+          id: user.player.id,
+          fullName: user.player.fullName,
+          ign: user.player.ign,
+          gameAccount: user.player.gameAccount,
+          roleInGame: user.player.roleInGame ? {
+            id: user.player.roleInGame.id,
+            name: user.player.roleInGame.name
+          } : null,
+          team: user.player.team ? {
+            id: user.player.team.id,
+            name: user.player.team.name
+          } : null
+        } : null,
+        // Thêm team cho leader
+        team: leaderTeam
+      };
+    });
+  }
+
+  async createUser(dto: CreateUserDto) {
+    const hash = await bcrypt.hash(dto.password, 10);
+    const user = this.usersRepo.create({
+      email: dto.email,
+      password: hash, // Đã hash ở ngoài!
+      role: { id: dto.role_id },
+    });
+    return this.usersRepo.save(user);
+  }
+
+
+  
+  // API xóa user (chỉ admin)
+  async deleteUser(id: number, currentUser: User) {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User không tồn tại');
+    }
+    // Set leader về null cho các team mà user này làm leader
+    const teams = await this.teamsRepo.find({ where: { leader: { id: user.id } } });
+    for (const team of teams) {
+      (team.leader as any) = null;
+      await this.teamsRepo.save(team);
+    }
+
+    // Không cho phép xóa chính mình
+    if (id === currentUser.id) {
+      throw new ForbiddenException('Không thể xóa chính mình');
+    }
+
+    // Không cho phép xóa admin khác
+    if (user.role.name === 'admin' && currentUser.role.name !== 'admin') {
+      throw new ForbiddenException('Không có quyền xóa admin');
+    }
+
+    // Xóa player trước nếu có
+    if (user.player) {
+      await this.playersRepo.remove(user.player);
+    }
+
+    // Xóa user
+    await this.usersRepo.remove(user);
+
+    await this.activityLogService.createLog(
+      currentUser,
+      'delete_user',
+      'user',
+      id,
+      { deletedUser: { id: user.id, email: user.email, role: user.role.name } }
+    );
+
+    return {
+      message: 'Xóa user thành công',
+      deletedUserId: id
+    };
   }
   async findAll(role?: string) {
     if (role) {

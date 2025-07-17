@@ -11,18 +11,58 @@ import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { UserGuard } from '../common/guards/user.guard';
 import { LeaderGuard } from '../common/guards/leader.guard';
+import { CreateUserDto } from './dto/create-user.dto';
+
 import { Query } from '@nestjs/common';
 @Throttle({ default: { limit: 5, ttl: 60 } }) // 5 requests mỗi 60 giây cho tất cả route trong controller này
 @Controller('users')  
-@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+
   // Dashboard API - Lấy thống kê users
   @Get('stats')
-  @UseGuards( AdminGuard) 
+  @UseGuards(JwtAuthGuard, AdminGuard) 
   async getUserStats() {
     return this.usersService.getUserStats();
+  }
+
+
+
+  // API lấy danh sách tất cả users (chỉ admin/leader)
+  @Get()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getAllUsers() {
+    return this.usersService.getAllUsers();
+  }
+
+  // API tạo user mới (chỉ admin)
+  @Post()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+    async createUser(@Body() dto: CreateUserDto) {
+    return this.usersService.createUser(dto);
+  }
+  
+
+  // API cập nhật user (chỉ admin)
+  @Patch(':id')
+  @UseGuards(AdminGuard)
+  async updateUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto: any,
+    @Request() req
+  ) {
+    return this.usersService.updateUser(id, updateUserDto, req.user);
+  }
+
+  // API xóa user (chỉ admin)
+  @Post(':id/delete')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async deleteUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req
+  ) {
+    return this.usersService.deleteUser(id, req.user);
   }
 
   // Temporary API to create admin user (for development only)
@@ -37,7 +77,7 @@ export class UsersController {
 
   // 1. GET /users/profile – lấy thông tin user hiện tại (dựa trên JWT)
   @Get('profile')
-  @UseGuards(UserGuard)
+  @UseGuards(JwtAuthGuard, UserGuard)
   async getProfile(@Request() req) {
     const user = await this.usersService.getProfile(req.user.id);
     if (!user) throw new BadRequestException('User không tồn tại');
@@ -48,7 +88,7 @@ export class UsersController {
 
   // 3. POST /users/change-password-secure – đổi mật khẩu bảo mật
   @Post('change-password-secure')
-  @UseGuards(UserGuard)
+  @UseGuards(JwtAuthGuard, UserGuard)
   async changePasswordSecure(
     @Body() changePasswordDto: ChangePasswordDto,
     @Request() req
@@ -66,7 +106,7 @@ export class UsersController {
 
   // 4. PUT /users/profile/update – user chỉ được cập nhật thông tin cá nhân của chính mình, không cho phép update role
   @Put('profile/update')
-  @UseGuards(UserGuard)
+  @UseGuards(JwtAuthGuard, UserGuard)
   async updateUserProfile(
     @Body() updateProfileDto: UpdateProfileDto,
     @Request() req
@@ -85,7 +125,7 @@ export class UsersController {
 
   // API cho admin reset mật khẩu user khác
   @Put('admin/:id/reset-password')
-  @UseGuards(RoleProtectionGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @ProtectRole()
   async adminResetUserPassword(
     @Param('id', ParseIntPipe) id: number,

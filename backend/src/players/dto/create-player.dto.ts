@@ -11,7 +11,7 @@ export class CreatePlayerDto {
 
   @IsNotEmpty()
   @IsString()
-  role: string;
+  roleInGame: string;
 
   @IsNotEmpty()
   @IsString()

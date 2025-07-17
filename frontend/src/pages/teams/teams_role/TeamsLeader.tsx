@@ -7,6 +7,9 @@ import {
   UserAddOutlined, DeleteOutlined, ReloadOutlined, UserOutlined, EditOutlined
 } from '@ant-design/icons';
 import { getTeams, updateTeam, addMember, removeMember, getTeamInvites, getEvents, getTeamAttendances, getRecentActivityLogs } from '../../../api/teams.api';
+import { getPlayers } from '../../../api/players.api';
+import { createTeamInvite } from '../../../api/team-invites.api';
+import axiosClient from '../../../api/axiosClient';
 
 const { Title, Text } = Typography;
 
@@ -56,10 +59,11 @@ const TeamsLeader: React.FC = () => {
   // Hàm fetch dữ liệu bổ sung
   const fetchExtraData = async (teamId: string) => {
     try {
+      // Gọi API lấy invites của team (cho leader)
       let invitesRes = [];
-      // Chỉ gọi getTeamInvites nếu user không phải leader
       if (user.role.name === 'leader') {
-        invitesRes = await getTeamInvites();
+        const res = await getTeamInvites();
+        invitesRes = res.data;
       }
       const [eventsRes, attendanceRes, logRes] = await Promise.all([
         getEvents(),
@@ -89,7 +93,7 @@ const TeamsLeader: React.FC = () => {
   // Kick member
   const handleKick = async (memberId: string) => {
     try {
-      await removeMember(team.id, { memberId });
+      await removeMember(team.id, { playerId: memberId }); // <-- sửa key thành playerId
       notification.success({ message: 'Đã kick thành viên' });
       fetchTeam();
     } catch {
@@ -98,15 +102,23 @@ const TeamsLeader: React.FC = () => {
   };
 
   // Mời member
-  const handleInvite = async (values: any) => {
+  const handleInvite = async (values: { email: string }) => {
     try {
-      await addMember(team.id, values);
-      notification.success({ message: 'Đã gửi lời mời' });
+      const players = await getPlayers();
+      // Tìm player theo email user
+      const found = players.find((p: any) => p.user?.email === values.email);
+      if (!found) {
+        notification.error({ message: 'Không tìm thấy tuyển thủ với email này' });
+        return;
+      }
+      await createTeamInvite({ teamId: team.id, playerId: Number(found.id), status: 'pending' });
       setInviteModal(false);
       inviteForm.resetFields();
+      notification.success({ message: 'Đã gửi lời mời' });
       fetchTeam();
-    } catch {
-      notification.error({ message: 'Mời thất bại' });
+      
+    } catch (err: any) {
+      notification.error({ message: err.response?.data?.message || 'Gửi lời mời thất bại' });
     }
   };
 
@@ -246,44 +258,59 @@ const TeamsLeader: React.FC = () => {
   );
 
   // Block lời mời
-  const renderInvites = () => (
-    <Card
-      title="Lời mời đang chờ"
-      style={{ minHeight: 120, boxShadow: '0 2px 8px #f0f1f2', borderRadius: 10 }}
-    >
-      {invites.length > 0 ? (
-        <List
-          size="small"
-          dataSource={invites}
-          renderItem={invite => (
-            <List.Item>
-              <b>{invite.email || invite.username}</b> - <Tag color="orange">{invite.status}</Tag>
-            </List.Item>
-          )}
-        />
-      ) : <Text type="secondary">Không có lời mời nào.</Text>}
-    </Card>
-  );
+  const renderInvites = () => {
+    console.log('invites:', invites);
+    console.log('team:', team);
+    const teamInvites = invites.filter(invite => invite.team?.id === team.id);
+    return (
+      <Card
+        title="Lời mời đang chờ"
+        style={{ minHeight: 120, boxShadow: '0 2px 8px #f0f1f2', borderRadius: 10 }}
+        extra={
+          <Button size="small" onClick={fetchTeam}>
+            Làm mới
+          </Button>
+        }
+      >
+        {teamInvites.length > 0 ? (
+          <List
+            size="small"
+            dataSource={teamInvites}
+            renderItem={invite => (
+              <List.Item>
+                <b>{invite.email || invite.username}</b> - <Tag color="orange">{invite.status}</Tag>
+              </List.Item>
+            )}
+          />
+        ) : <Text type="secondary">Không có lời mời nào.</Text>}
+      </Card>
+    );
+  };
 
   // Block nhật ký hoạt động
-  const renderActivityLog = () => (
-    <Card
-      title="Nhật ký hoạt động team"
-      style={{ minHeight: 120, boxShadow: '0 2px 8px #f0f1f2', borderRadius: 10 }}
-    >
-      {activityLog.length > 0 ? (
-        <List
-          size="small"
-          dataSource={activityLog.slice(0, 5)}
-          renderItem={log => (
-            <List.Item>
-              <Text>{log.action}</Text> - <Text type="secondary">{new Date(log.createdAt).toLocaleString()}</Text>
-            </List.Item>
-          )}
-        />
-      ) : <Text type="secondary">Chưa có hoạt động nào.</Text>}
-    </Card>
-  );
+  const renderActivityLog = () => {
+    console.log('activityLog:', activityLog);
+    console.log('team:', team);
+    const teamLogs = activityLog.filter(log => log.teamId === team.id);
+    return (
+      <Card
+        title="Nhật ký hoạt động team"
+        style={{ minHeight: 120, boxShadow: '0 2px 8px #f0f1f2', borderRadius: 10 }}
+      >
+        {teamLogs.length > 0 ? (
+          <List
+            size="small"
+            dataSource={teamLogs.slice(0, 5)}
+            renderItem={log => (
+              <List.Item>
+                <Text>{log.action}</Text> - <Text type="secondary">{new Date(log.createdAt).toLocaleString()}</Text>
+              </List.Item>
+            )}
+          />
+        ) : <Text type="secondary">Chưa có hoạt động nào.</Text>}
+      </Card>
+    );
+  };
 
   if (loading) return <Spin style={{ marginTop: 100 }} />;
   if (!team && user.role.name !== 'admin') {

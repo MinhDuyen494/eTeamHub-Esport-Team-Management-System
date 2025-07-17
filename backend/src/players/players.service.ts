@@ -15,10 +15,12 @@ export class PlayersService {
     private activityLogService: ActivityLogService,
   ) {}
 
-  // CREATE
+  // CREATE: Chỉ tạo player mới, liên kết với user hiện tại (không tạo user mới, không nhận email/password)
   async create(createPlayerDto: CreatePlayerDto, user: User): Promise<Player> {
-    console.log('Creating player:', createPlayerDto);
-    const player = this.playersRepo.create({ ...createPlayerDto, user });
+    // Lấy entity RoleInGame từ tên
+    const roleInGameEntity = await this.playersRepo.manager.getRepository('RoleInGame').findOne({ where: { name: createPlayerDto.roleInGame } });
+    if (!roleInGameEntity) throw new Error('RoleInGame not found');
+    const player = this.playersRepo.create({ ...createPlayerDto, user, roleInGame: roleInGameEntity });
     await this.playersRepo.save(player);
     await this.activityLogService.createLog(
       user,
@@ -32,7 +34,7 @@ export class PlayersService {
 
   // READ ALL
   async findAll(): Promise<Player[]> {
-    return this.playersRepo.find();
+    return this.playersRepo.find({ relations: ['user'] });
   }
 
   // READ ONE
@@ -40,6 +42,11 @@ export class PlayersService {
     const player = await this.playersRepo.findOneBy({ id });
     if (!player) throw new NotFoundException(playerMessages.PLAYER_NOT_FOUND);
     return player;
+  }
+
+  // Tìm player theo userId
+  async findByUserId(userId: number): Promise<Player | null> {
+    return this.playersRepo.findOne({ where: { user: { id: userId } }, relations: ['user', 'roleInGame', 'team'] });
   }
 
   // UPDATE

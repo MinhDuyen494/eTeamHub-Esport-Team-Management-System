@@ -67,11 +67,15 @@ interface PlayerReport {
 
 // Kiểu dữ liệu cho activity log
 interface ActivityLog {
-  teamId: number;
-  userId: number;
-  relatedUserIds?: number[];
+  id: number;
+  user: {
+    id: number;
+    email: string;
+  };
   action: string;
-  description: string;
+  targetType?: string;
+  targetId?: number;
+  detail?: any;
   createdAt: string;
 }
 
@@ -100,15 +104,9 @@ const DashboardLeader: React.FC = () => {
         }
         const report = await getTeamReport(userData.teamId.toString());
         setTeamReport(report);
-        // Lấy log hoạt động, filter ở FE nếu cần
+        // Lấy log hoạt động của user hiện tại
         const logs: ActivityLog[] = await getRecentActivityLogs(10);
-        setActivityLogs(
-          logs.filter(
-            (log: ActivityLog) =>
-              log.teamId === userData.teamId &&
-              (log.userId === userData.id || log.relatedUserIds?.includes(userData.id))
-          )
-        );
+        setActivityLogs(logs);
       } catch (err) {
         message.error("Lỗi khi tải dữ liệu dashboard!");
       }
@@ -120,7 +118,8 @@ const DashboardLeader: React.FC = () => {
   if (loading || !user) return <Spin />;
 
   if (!user || !user.role || user.role.name !== "leader" || !user.teamId)
-    return <div>Bạn không có quyền truy cập.</div>;
+    return <div><Empty description="Bạn chưa quản lý team nào. Hãy liên hệ admin để được tạo team. Chức năng tự tạo team sẽ cập nhật sớm" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+       </div>;
 
   // Block: Team Info
   const TeamInfoBlock: React.FC<{ teamInfo?: TeamInfo }> = ({ teamInfo }) => (
@@ -157,9 +156,24 @@ const DashboardLeader: React.FC = () => {
           items={logs.map((log, idx) => ({
             children: (
               <span>
-                <b>{log.action}</b> - {log.description}
+                <b>
+                  {log.action === 'create_event' && 'Tạo sự kiện'}
+                  {log.action === 'update_event' && 'Cập nhật sự kiện'}
+                  {log.action === 'delete_event' && 'Xóa sự kiện'}
+                  {log.action === 'create_team' && 'Tạo team'}
+                  {log.action === 'update_user' && 'Cập nhật người dùng'}
+                  {log.action === 'change_password' && 'Đổi mật khẩu'}
+                  {log.action === 'update_profile' && 'Cập nhật hồ sơ'}
+                  {log.action === 'rsvp_attendance' && 'RSVP sự kiện'}
+                  {log.action === 'checkin_attendance' && 'Điểm danh'}
+                  {log.action === 'create_player' && 'Tạo player'}
+                  {!['create_event', 'update_event', 'delete_event', 'create_team', 'update_user', 'change_password', 'update_profile', 'rsvp_attendance', 'checkin_attendance', 'create_player'].includes(log.action) && log.action}
+                </b>
+                {log.detail?.title && ` - "${log.detail.title}"`}
+                {log.detail?.name && ` - "${log.detail.name}"`}
+                {log.detail?.status && ` (${log.detail.status})`}
                 <span style={{ color: '#aaa', marginLeft: 12 }}>
-                  {new Date(log.createdAt).toLocaleString()}
+                  {new Date(log.createdAt).toLocaleString('vi-VN')}
                 </span>
               </span>
             ),

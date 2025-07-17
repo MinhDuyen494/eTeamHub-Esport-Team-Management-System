@@ -13,5 +13,6 @@ import { RoleInGame } from './entities/role-in-game.entity';
   providers: [PlayersService],
   controllers: [PlayersController],
   exports: [PlayersService],
+
 })
 export class PlayersModule {}

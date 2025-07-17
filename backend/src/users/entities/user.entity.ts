@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, ManyToOne, OneToMany, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Player } from '../../players/entities/player.entity';
 import { UserRole } from '../../common/types/user.types';
 import { Role } from './roles.entity';
@@ -18,8 +18,8 @@ export class User {
   @JoinColumn({ name: 'role_id' })
   role: Role;
 
-  @Column({ nullable: true })
-  refreshToken: string;
+  @CreateDateColumn()
+  createdAt: Date;
 
   // Liên kết 1-1 với Player
   @OneToOne(() => Player, player => player.user)

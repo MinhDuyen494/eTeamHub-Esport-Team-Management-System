@@ -5,9 +5,12 @@ import {
 } from 'antd';
 import {
   UserOutlined, TeamOutlined, LogoutOutlined, HistoryOutlined, 
-  UserAddOutlined, CheckOutlined, CloseOutlined
+  UserAddOutlined, CheckOutlined, CloseOutlined, ClockCircleOutlined
 } from '@ant-design/icons';
-import { getTeams, leaveTeam, getTeamInvites, getRecentActivityLogs } from '../../../api/teams.api';
+import { teamsApi } from '../../../api/teams.api';
+import { getTeamInvites, acceptTeamInvite, rejectTeamInvite } from '../../../api/team-invites.api';
+import { leaveTeam } from '../../../api/teams.api';
+import { getProfile } from '../../../api/users.api';
 
 const { Title, Text } = Typography;
 
@@ -20,77 +23,108 @@ const TeamsPlayer: React.FC = () => {
     return <Empty description="Bạn không có quyền truy cập trang này." style={{ marginTop: 100 }} />;
   }
 
-  const [team, setTeam] = useState<any>(null);
+  const [playerTeams, setPlayerTeams] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [invites, setInvites] = useState<any[]>([]);
-  const [activityLog, setActivityLog] = useState<any[]>([]);
   const [leaveModal, setLeaveModal] = useState(false);
 
   const fetchPlayerData = async () => {
     try {
       setLoading(true);
-      const teams = await getTeams();
-      // Tìm team mà player đang tham gia
-      const myTeam = teams.find((t: any) => 
-        t.members?.some((member: any) => member.id === playerId)
-      );
-      setTeam(myTeam);
       
-      // Fetch invites và activity log
-      const [invitesRes, logRes] = await Promise.all([
-        getTeamInvites(),
-        getRecentActivityLogs(),
-      ]);
-      setInvites(invitesRes || []);
-      setActivityLog(logRes || []);
+      // Lấy thông tin team của player
+      const response = await teamsApi.getPlayerTeams();
+      setPlayerTeams(response.data); // Lấy đúng data
+      console.log('teamsData:', response.data);
+      
+      // Lấy team invites
+      const invitesData = await getTeamInvites();
+      setInvites(invitesData || []);
+      
       setLoading(false);
     } catch (e) {
+      console.error('Error fetching player data:', e);
       notification.error({ message: 'Lỗi tải dữ liệu' });
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Luôn fetch lại profile khi vào trang này để đồng bộ trạng thái team
+    const syncUserProfile = async () => {
+      try {
+        const res = await getProfile();
+        const user = res.user;
+        user.teamId = user.player?.team?.id ?? null;
+        user.teamName = user.player?.team?.name ?? null;
+        localStorage.setItem('user', JSON.stringify(user));
+      } catch (e) {
+        // Có thể log lỗi hoặc bỏ qua nếu chưa đăng nhập
+      }
+    };
+    syncUserProfile();
     fetchPlayerData();
   }, [playerId]);
 
   // Rời team
   const handleLeaveTeam = async () => {
     try {
-      await leaveTeam(team.id);
+      await leaveTeam(playerTeams.currentTeam.id);
       notification.success({ message: 'Đã rời team thành công' });
       setLeaveModal(false);
-      fetchPlayerData(); // Refresh data
+      await fetchPlayerData();
+      // Luôn fetch lại profile và cập nhật localStorage sau khi rời team
+      const res = await getProfile();
+      const user = res.user;
+      user.teamId = user.player?.team?.id ?? null;
+      user.teamName = user.player?.team?.name ?? null;
+      localStorage.setItem('user', JSON.stringify(user));
+      window.location.reload(); // Đảm bảo reload lại dữ liệu mới nhất
     } catch {
       notification.error({ message: 'Rời team thất bại' });
     }
   };
 
   // Xử lý lời mời team
-  const handleInviteResponse = async (inviteId: string, action: 'accept' | 'reject') => {
+  const handleInviteResponse = async (inviteId: number, action: 'accept' | 'reject') => {
     try {
-      // TODO: Implement API call to accept/reject invite
       if (action === 'accept') {
+        await acceptTeamInvite(inviteId.toString());
         notification.success({ message: 'Đã gia nhập team' });
+
+        // Sau khi invite thành công, fetch lại user
+          const res = await getProfile();
+          const user = res.user;
+
+          // Thêm teamId, teamName vào user (nếu có)
+          user.teamId = user.player?.team?.id ?? null;
+          user.teamName = user.player?.team?.name ?? null;
+
+          localStorage.setItem('user', JSON.stringify(user));
+          window.location.reload(); // reload để Dashboard lấy user mới
       } else {
+        await rejectTeamInvite(inviteId.toString());
         notification.success({ message: 'Đã từ chối lời mời' });
       }
-      fetchPlayerData();
+      await fetchPlayerData(); // Đảm bảo gọi lại API lấy team mới
     } catch {
       notification.error({ message: 'Xử lý lời mời thất bại' });
     }
   };
 
-  // Render thông tin team (khi có team)
-  const renderTeamInfo = () => {
-    if (!team) return null;
+  // Render thông tin team hiện tại
+  const renderCurrentTeam = () => {
+    if (!playerTeams?.currentTeam) return null;
+    
+    const team = playerTeams.currentTeam;
     
     return (
       <Card
         title={
           <Space>
             <TeamOutlined />
-            <span>Thông tin team</span>
+            <span>Team hiện tại</span>
+            <Tag color="green">Đang tham gia</Tag>
           </Space>
         }
         extra={
@@ -112,14 +146,16 @@ const TeamsPlayer: React.FC = () => {
         <Text strong>Mô tả:</Text> <Text>{team.description || '(Chưa có mô tả)'}</Text><br />
         <Text strong>Leader:</Text> <Text>{team.leader?.email}</Text><br />
         <Text strong>Ngày tham gia:</Text> <Text>{new Date(team.createdAt).toLocaleDateString()}</Text><br />
-        <Text strong>Số thành viên:</Text> <Text>{team.members?.length || 0}</Text>
+        <Text strong>Số thành viên:</Text> <Text>{team.memberCount}</Text>
       </Card>
     );
   };
 
-  // Render danh sách thành viên
-  const renderTeamMembers = () => {
-    if (!team) return null;
+  // Render danh sách thành viên team hiện tại
+  const renderCurrentTeamMembers = () => {
+    if (!playerTeams?.currentTeam) return null;
+    
+    const team = playerTeams.currentTeam;
     
     return (
       <Card
@@ -145,7 +181,7 @@ const TeamsPlayer: React.FC = () => {
                   }
                   title={
                     <Space>
-                      <b>{member.fullname || member.email}</b>
+                      <b>{member.fullName || member.email}</b>
                       {member.id === playerId && <Tag color="blue">Bạn</Tag>}
                       {member.role?.name === 'leader' && <Tag color="geekblue">Leader</Tag>}
                     </Space>
@@ -173,85 +209,49 @@ const TeamsPlayer: React.FC = () => {
   // Render giao diện khi không có team (Free Agent)
   const renderFreeAgentView = () => {
     return (
-      <>
-        <Card
-          title={
-            <Space>
-              <UserOutlined />
-              <span>Trạng thái tuyển thủ</span>
-            </Space>
+      <Card
+        title={
+          <Space>
+            <UserOutlined />
+            <span>Trạng thái tuyển thủ</span>
+            <Tag color="orange">Free Agent</Tag>
+          </Space>
+        }
+        style={{ marginBottom: 24 }}
+      >
+        <Empty 
+          description={
+            <div>
+              <Title level={4}>Bạn không có team</Title>
+              <Text>Hãy chờ lời mời từ các team hoặc tìm team phù hợp</Text>
+            </div>
           }
-          style={{ marginBottom: 24 }}
-        >
-          <Empty 
-            description={
-              <div>
-                <Title level={4}>Bạn không có team</Title>
-                <Text>Hãy gia nhập một team để bắt đầu</Text>
-              </div>
-            }
-            style={{ padding: '40px 0' }}
-          />
-        </Card>
-
-        {/* Lịch sử hoạt động */}
-        <Card
-          title={
-            <Space>
-              <HistoryOutlined />
-              <span>Lịch sử hoạt động</span>
-            </Space>
-          }
-        >
-          {activityLog.length > 0 ? (
-            <List
-              size="small"
-              dataSource={activityLog.slice(0, 10)}
-              renderItem={log => (
-                <List.Item>
-                  <Text>{log.action}</Text> - <Text type="secondary">{new Date(log.createdAt).toLocaleString()}</Text>
-                </List.Item>
-              )}
-            />
-          ) : (
-            <Text type="secondary">Chưa có hoạt động nào.</Text>
-          )}
-        </Card>
-      </>
+          style={{ padding: '40px 0' }}
+        />
+      </Card>
     );
   };
 
   // Render lời mời team
   const renderTeamInvites = () => {
     return (
-      <Card
-        title={
-          <Space>
-            <UserAddOutlined />
-            <span>Lời mời team</span>
-          </Space>
-        }
-        style={{ marginBottom: 24 }}
-      >
+      <Card title="Lời mời team">
         {invites.length > 0 ? (
           <List
-            size="small"
             dataSource={invites}
             renderItem={invite => (
               <List.Item
                 actions={[
-                  <Button 
-                    type="primary" 
-                    size="small" 
-                    icon={<CheckOutlined />}
+                  <Button
+                    type="primary"
+                    size="small"
                     onClick={() => handleInviteResponse(invite.id, 'accept')}
                   >
-                    Gia nhập
+                    Đồng ý
                   </Button>,
-                  <Button 
-                    danger 
-                    size="small" 
-                    icon={<CloseOutlined />}
+                  <Button
+                    danger
+                    size="small"
                     onClick={() => handleInviteResponse(invite.id, 'reject')}
                   >
                     Từ chối
@@ -262,8 +262,7 @@ const TeamsPlayer: React.FC = () => {
                   title={<b>{invite.team?.name || 'Team không xác định'}</b>}
                   description={
                     <>
-                      <Text type="secondary">Lời mời từ: {invite.sender?.email}</Text><br />
-                      <Text type="secondary">Ngày: {new Date(invite.createdAt).toLocaleDateString()}</Text>
+                      <span>Trạng thái: {invite.status}</span>
                     </>
                   }
                 />
@@ -277,23 +276,45 @@ const TeamsPlayer: React.FC = () => {
     );
   };
 
+  // Render teams đã từng tham gia (cho free agent)
+  const renderPreviousTeams = () => {
+    if (playerTeams?.currentTeam) return null; // Chỉ hiển thị khi không có team hiện tại
+    
+    return (
+      <Card
+        title={
+          <Space>
+            <ClockCircleOutlined />
+            <span>Teams đã từng tham gia</span>
+          </Space>
+        }
+        style={{ marginBottom: 24 }}
+      >
+        <Empty description="Chưa có lịch sử tham gia team nào." />
+      </Card>
+    );
+  };
+
   if (loading) return <Spin style={{ marginTop: 100 }} />;
 
   return (
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <Title level={3} style={{ marginBottom: 24 }}>
-        Xin chào, <span style={{ color: '#1677ff' }}>{user.fullname || user.email}</span>
+        Xin chào, <span style={{ color: '#1677ff' }}>{user.fullname}</span>
       </Title>
 
       <Row gutter={[24, 24]}>
         <Col xs={24} md={16}>
-          {team ? (
+          {playerTeams?.currentTeam ? (
             <>
-              {renderTeamInfo()}
-              {renderTeamMembers()}
+              {renderCurrentTeam()}
+              {renderCurrentTeamMembers()}
             </>
           ) : (
-            renderFreeAgentView()
+            <>
+              {renderFreeAgentView()}
+              {renderPreviousTeams()}
+            </>
           )}
         </Col>
         
@@ -305,10 +326,10 @@ const TeamsPlayer: React.FC = () => {
             title="Thống kê cá nhân"
             style={{ marginBottom: 24 }}
           >
-            <Text strong>Team hiện tại:</Text> {team ? team.name : 'Không có'}<br />
-            <Text strong>Vai trò:</Text> {team ? 'Thành viên' : 'Tuyển thủ tự do'}<br />
-            <Text strong>Lời mời đang chờ:</Text> {invites.length}<br />
-            <Text strong>Hoạt động gần đây:</Text> {activityLog.length}
+            <Text strong>Team hiện tại:</Text> {playerTeams?.currentTeam ? playerTeams.currentTeam.name : 'Không có'}<br />
+            <Text strong>Trạng thái:</Text> {playerTeams?.currentTeam ? 'Đang tham gia' : 'Free Agent'}<br />
+            <Text strong>Lời mời đang chờ:</Text> {playerTeams?.pendingInvites?.length || 0}<br />
+            <Text strong>Tổng số team:</Text> {playerTeams?.otherTeams?.length || 0}
           </Card>
         </Col>
       </Row>

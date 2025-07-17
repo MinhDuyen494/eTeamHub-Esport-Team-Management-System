@@ -35,22 +35,29 @@ export class TeamInvitesService {
     const invite = this.invitesRepo.create({ team, player, status: 'pending' });
     const savedInvite = await this.invitesRepo.save(invite);
 
-    // Gửi notification cho player
-    await this.notificationsService.create(
-      player.user,
-      `Bạn được mời vào team ${team.name}`,
-      'invite'
-    );
-
-    // Ghi log gửi invite
-    if (leader) {
-      await this.activityLogService.createLog(
-        leader,
-        'invite_player',
-        'team_invite',
-        savedInvite.id,
-        { teamId, playerId }
+    try {
+      await this.notificationsService.create(
+        player.user,
+        `Bạn được mời vào team ${team.name}`,
+        'invite'
       );
+    } catch (e) {
+      // Log lỗi, không throw để không ảnh hưởng tới việc lưu invite
+      console.error('Lỗi gửi notification:', e);
+    }
+
+    try {
+      if (leader) {
+        await this.activityLogService.createLog(
+          leader,
+          'invite_player',
+          'team_invite',
+          savedInvite.id,
+          { teamId, playerId }
+        );
+      }
+    } catch (e) {
+      console.error('Lỗi ghi activity log:', e);
     }
 
     return savedInvite;

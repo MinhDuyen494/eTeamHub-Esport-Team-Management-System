@@ -19,6 +19,70 @@ export class TeamsService {
     private activityLogService: ActivityLogService,
   ) {}
 
+
+  async findById(teamId: number) {
+    const team = await this.teamsRepo.findOne({ 
+      where: { id: teamId },
+      relations: ['leader', 'members']
+    });
+    if (!team) throw new NotFoundException(teamMessages.TEAM_NOT_FOUND);
+    return team;
+  }
+
+  async getPlayerTeams(userId: number) {
+    // Lấy thông tin player của user
+    const player = await this.playersRepo.findOne({ 
+      where: { user: { id: userId } },
+      relations: ['team', 'team.leader', 'team.members', 'invites', 'invites.team', 'invites.team.leader']
+    });
+
+    if (!player) {
+      throw new NotFoundException('Player profile không tồn tại');
+    }
+
+    // Lấy tất cả teams
+    const allTeams = await this.teamsRepo.find({
+      relations: ['leader', 'members'],
+      order: { createdAt: 'DESC' }
+    });
+
+    // Lấy team invites của player
+    const playerInvites = player.invites || [];
+
+    // Phân loại teams
+    const currentTeam = player.team;
+    const pendingInvites = playerInvites.filter(invite => invite.status === 'pending');
+    const otherTeams = allTeams.filter(team => 
+      team.id !== currentTeam?.id && 
+      !pendingInvites.some(invite => invite.team.id === team.id)
+    );
+
+    return {
+      currentTeam: currentTeam ? {
+        ...currentTeam,
+        type: 'current',
+        memberCount: currentTeam.members?.length || 0
+      } : null,
+      pendingInvites: pendingInvites.map(invite => ({
+        ...invite.team,
+        type: 'invite',
+        inviteId: invite.id,
+        inviteStatus: invite.status,
+        memberCount: invite.team.members?.length || 0
+      })),
+      otherTeams: otherTeams.map(team => ({
+        ...team,
+        type: 'other',
+        memberCount: team.members?.length || 0
+      })),
+      playerStatus: {
+        hasTeam: !!currentTeam,
+        isFreeAgent: !currentTeam,
+        pendingInviteCount: pendingInvites.length
+      }
+    };
+  }
+
   async create(createTeamDto: CreateTeamDto, leaderId: number) {
     // Tìm user thực hiện thao tác (có thể là leader hoặc admin)
     const user = await this.usersRepo.findOne({ where: { id: leaderId }, relations: ['role'] });
@@ -38,25 +102,11 @@ export class TeamsService {
         relations: ['role'] 
       });
       if (!foundLeader || foundLeader.role.name !== 'leader') {
-        throw new BadRequestException('User được chọn không phải là leader');
+        throw new BadRequestException('Leader không tồn tại hoặc không có quyền leader');
       }
       teamLeader = foundLeader;
-      
-      // Kiểm tra leader đã có team chưa
-      const existingTeam = await this.teamsRepo.findOne({ 
-        where: { leader: { id: teamLeader.id } } 
-      });
-      if (existingTeam) {
-        throw new BadRequestException('Leader này đã có team');
-      }
     } else {
-      // Leader tạo team: kiểm tra leader chưa có team
-      const existingTeam = await this.teamsRepo.findOne({ 
-        where: { leader: { id: user.id } } 
-      });
-      if (existingTeam) {
-        throw new BadRequestException('Bạn đã có team, không thể tạo thêm');
-      }
+      // Leader tạo team: tự làm leader
       teamLeader = user;
     }
 
@@ -99,20 +149,8 @@ export class TeamsService {
     }
 
     const before = { ...team };
-    
-    // Chỉ update name và description
-    if (updateTeamDto.name) {
-      console.log('Updating name from:', team.name, 'to:', updateTeamDto.name);
-      team.name = updateTeamDto.name;
-    }
-    if (updateTeamDto.description) {
-      console.log('Updating description from:', team.description, 'to:', updateTeamDto.description);
-      team.description = updateTeamDto.description;
-    }
-    
-    console.log('Team object before save:', team);
+    Object.assign(team, updateTeamDto);
     const updated = await this.teamsRepo.save(team);
-    console.log('Updated team data:', updated);
     await this.activityLogService.createLog(
       user,
       'update_team',
@@ -126,16 +164,10 @@ export class TeamsService {
   async remove(teamId: number, leaderId: number) {
     const team = await this.teamsRepo.findOne({ where: { id: teamId }, relations: ['leader'] });
     if (!team) throw new NotFoundException(teamMessages.TEAM_NOT_FOUND);
-    const user = await this.usersRepo.findOne({ where: { id: leaderId }, relations: ['role'] });
-    if (!user || (user.role.name !== 'leader' && user.role.name !== 'admin')) {
-      throw new ForbiddenException(teamMessages.FORBIDDEN);
-    }
-    if (user.role.name === 'leader' && team.leader.id !== leaderId) {
-      throw new ForbiddenException(teamMessages.FORBIDDEN);
-    }
+    if (team.leader.id !== leaderId) throw new ForbiddenException(teamMessages.FORBIDDEN);
     await this.teamsRepo.remove(team);
     await this.activityLogService.createLog(
-      user,
+      team.leader,
       'delete_team',
       'team',
       team.id,
@@ -184,29 +216,31 @@ export class TeamsService {
     return updatedTeam;
   }
 
-  // Dashboard API - Lấy thống kê teams
-  async getTeamStats() {
-    const totalTeams = await this.teamsRepo.count();
-    const activeTeams = await this.teamsRepo
-      .createQueryBuilder('team')
-      .leftJoin('team.members', 'member')
-      .groupBy('team.id')
-      .having('COUNT(member.id) > 0')
-      .getCount();
-    
-    return {
-      totalTeams,
-      activeTeams,
-      emptyTeams: totalTeams - activeTeams,
-    };
-  }
-
-  // Lấy danh sách teams (cho frontend fallback)
   async getTeams() {
     return this.teamsRepo.find({
       relations: ['leader', 'members'],
       order: { createdAt: 'DESC' }
     });
+  }
+
+  async getTeamStats() {
+    const totalTeams = await this.teamsRepo.count();
+    const teamsWithMembers = await this.teamsRepo
+      .createQueryBuilder('team')
+      .leftJoin('team.members', 'member')
+      .select('team.id')
+      .addSelect('COUNT(member.id)', 'memberCount')
+      .groupBy('team.id')
+      .getRawMany();
+
+    const totalMembers = teamsWithMembers.reduce((sum, team) => sum + parseInt(team.memberCount), 0);
+    const averageMembers = totalTeams > 0 ? (totalMembers / totalTeams).toFixed(1) : '0';
+
+    return {
+      totalTeams,
+      totalMembers,
+      averageMembers
+    };
   }
 
   // Lấy thông tin chi tiết của một team

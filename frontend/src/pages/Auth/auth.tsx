@@ -13,19 +13,16 @@ const { Title, Text } = Typography;
 const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-  const { login } = React.useContext(AuthContext);
+  // const { login } = React.useContext(AuthContext);
   const currentLang = getCurrentLanguage();
 
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
 
   const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);
     try {
       const response = await loginApi(values);
-      
       // Check if login was successful
-      if (response.access_token && response.user) {
+      if (response.access_token) {
         // Save to localStorage
         localStorage.setItem('accessToken', response.access_token);
         localStorage.setItem('refreshToken', response.refresh_token || '');
@@ -39,8 +36,7 @@ const Auth: React.FC = () => {
         // Show success message from backend first, fallback to default
         const successMessage = response.message || getMessage('LOGIN_SUCCESS');
         notification.success({ message: successMessage });
-        
-        navigate(from, { replace: true });
+        navigate('/dashboard');
       } else {
         // Show error message from backend first, fallback to default
         const errorMessage = response.message || getMessage('LOGIN_FAILED');
@@ -118,6 +114,9 @@ const Auth: React.FC = () => {
               </Button>
             </Form.Item>
           </Form>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            Tạo tài khoản? <a onClick={() => navigate('/auth/register')}>Đăng ký</a>
+          </div>
         </Card>
       </div>
     </div>

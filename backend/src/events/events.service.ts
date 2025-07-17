@@ -162,7 +162,7 @@ export class EventsService {
 
   // Lấy event theo id
   async findOne(id: number): Promise<Event> {
-    const event = await this.eventsRepo.findOneBy({ id });
+    const event = await this.eventsRepo.findOne({ where: { id }, relations: ['team'] });
     if (!event) throw new NotFoundException(eventMessages.EVENT_NOT_FOUND);
     return event;
   }

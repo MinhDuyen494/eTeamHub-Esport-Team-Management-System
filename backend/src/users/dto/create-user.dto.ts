@@ -1,8 +1,7 @@
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsEmail, IsNumber, IsString, MinLength } from 'class-validator';
 
-export class RegisterDto {
-
+export class CreateUserDto {
   @IsEmail()
   email: string;
 
@@ -13,4 +12,4 @@ export class RegisterDto {
   @Type(() => Number)
   @IsNumber()
   role_id: number;
-}
+} 

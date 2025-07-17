@@ -14,36 +14,36 @@ export class EventsController {
 
   // Dashboard API - Lấy số lượng events sắp diễn ra
   @Get('upcoming/count')
-  @UseGuards(JwtAuthGuard,AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async getUpcomingEventsCount() {
     return this.eventsService.getUpcomingEventsCount();
   }
 
-  @UseGuards(JwtAuthGuard,LeaderGuard)
+  @UseGuards(JwtAuthGuard, LeaderGuard)
   @Post()
-  create(@Body() createEventDto: CreateEventDto, @Req() req) {
+  async create(@Body() createEventDto: CreateEventDto, @Req() req) {
     return this.eventsService.create(createEventDto, req.user);
   }
 
   @Get()
-  findAll() {
+  async findAll() {
     return this.eventsService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.eventsService.findOne(id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateEventDto: UpdateEventDto, @Req() req) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() updateEventDto: UpdateEventDto, @Req() req) {
     return this.eventsService.update(id, updateEventDto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @Req() req) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req) {
     return this.eventsService.remove(id, req.user);
   }
 }
