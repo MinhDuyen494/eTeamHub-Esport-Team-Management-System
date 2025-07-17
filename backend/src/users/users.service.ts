@@ -391,4 +391,18 @@ export class UsersService {
     );
     return { newPassword, resetAt: new Date() };
   }
+  async findAll(role?: string) {
+    if (role) {
+      return this.usersRepo.find({
+        where: { role: { name: role } },
+        relations: ['role'],
+        select: ['id', 'email']
+      });
+    }
+    return this.usersRepo.find({
+      relations: ['role'],
+      select: ['id', 'email']
+    });
+  }
 }
+

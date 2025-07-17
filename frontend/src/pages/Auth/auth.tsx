@@ -31,7 +31,6 @@ const Auth: React.FC = () => {
         localStorage.setItem('refreshToken', response.refresh_token || '');
         
         // Call context login
-        login(response.user, response.access_token);
         const userProfileResponse = await getProfile();
         const user = userProfileResponse.user || userProfileResponse;
         localStorage.setItem('user', JSON.stringify(user));

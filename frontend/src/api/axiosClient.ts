@@ -39,7 +39,7 @@ axiosClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    if (error.response && (error.response.status === 401 )) {
       // Xoá token và user
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');

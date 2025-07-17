@@ -24,4 +24,9 @@ export const adminResetPassword = async (id: string, data: any) => {
 export const getUserStats = async () => {
   const res = await axiosClient.get('/users/stats');
   return res.data;
+};
+
+export const getUsers = async (params?: any) => {
+  const res = await axiosClient.get('/users', { params });
+  return res.data;
 }; 

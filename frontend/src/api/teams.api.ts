@@ -25,6 +25,11 @@ export const removeMember = async (id: string, data: any) => {
   return res.data;
 };
 
+export const leaveTeam = async (id: string) => {
+  const res = await axiosClient.post(`/teams/${id}/leave-team`);
+  return res.data;
+};
+
 export const getTeams = async () => {
   const res = await axiosClient.get('/teams');
   return res.data;
@@ -34,4 +39,9 @@ export const getTeams = async () => {
 export const getTeamStats = async () => {
   const res = await axiosClient.get('/teams/stats');
   return res.data;
-}; 
+};
+
+export * from './team-invites.api';
+export * from './attendance.api';
+export * from './events.api';
+export * from './activity-log.api'; 

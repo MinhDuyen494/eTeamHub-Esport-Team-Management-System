@@ -11,6 +11,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { UserGuard } from '../common/guards/user.guard';
 import { LeaderGuard } from '../common/guards/leader.guard';
+import { Query } from '@nestjs/common';
 @Throttle({ default: { limit: 5, ttl: 60 } }) // 5 requests mỗi 60 giây cho tất cả route trong controller này
 @Controller('users')  
 @UseGuards(JwtAuthGuard)
@@ -100,5 +101,11 @@ export class UsersController {
       resetBy: req.user.id,
       resetAt: result.resetAt,
     };
+  }
+
+  @Get()
+  @UseGuards(AdminGuard)
+  findAll(@Query('role') role?: string) {
+    return this.usersService.findAll(role);
   }
 }

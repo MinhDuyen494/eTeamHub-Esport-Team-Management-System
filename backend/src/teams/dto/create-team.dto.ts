@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsInt, IsNumber } from 'class-validator';
 
 export class CreateTeamDto {
   @IsString()
@@ -7,6 +7,10 @@ export class CreateTeamDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  leaderId?: number;
 
   // ID các player muốn thêm vào team
   @IsOptional()

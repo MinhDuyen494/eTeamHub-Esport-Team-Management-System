@@ -11,6 +11,7 @@ import { SettingsProvider } from './Context/SettingsContext'
 import EventPage from './pages/Events/EventPage'
 import { EventProvider } from './Context/EventContext'
 import PlayersPage from './pages/PlayersPage.tsx'
+import TeamsPage from './pages/teams/TeamsPage.tsx'
 function App() {
   return (
     <>
@@ -57,6 +58,14 @@ function App() {
                 </AppLayout>
               </ProtectedRoute>
             } />
+            <Route path="/teams" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <TeamsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            
           </Routes>
         </BrowserRouter>
       </AuthProvider>

@@ -9,6 +9,7 @@ import { AddMemberDto } from './dto/add-member.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { LeaderGuard } from '../common/guards/leader.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
+import { UserGuard } from '../common/guards/user.guard';
 // Định nghĩa interface cho user từ JWT
 interface JwtUser {
   id: number;
@@ -39,8 +40,15 @@ export class TeamsController {
     return this.teamsService.getTeams();
   }
 
+  // Lấy thông tin chi tiết của một team
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
+  async getTeam(@Param('id') id: number) {
+    return this.teamsService.getTeam(Number(id));
+  }
+
   // Create team
-  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
+  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
   @Post()
   async create(@Body() dto: CreateTeamDto, @Req() req: RequestWithUser) {
     // Lúc này req.user đã là { id, email, role }
@@ -51,19 +59,26 @@ export class TeamsController {
     return this.teamsService.create(dto, leaderId);
   }
   // Update team
-  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
+  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
   @Patch(':id')
   async update(
     @Param('id') id: number,
     @Body() dto: UpdateTeamDto,
     @Req() req: RequestWithUser,
   ) {
+    console.log('Controller - Update team request received');
+    console.log('Controller - Team ID:', id);
+    console.log('Controller - Update DTO:', dto);
+    console.log('Controller - User ID:', req.user.id);
+    
     const leaderId = req.user.id;
-    return this.teamsService.update(Number(id), dto, leaderId);
+    const result = await this.teamsService.update(Number(id), dto, leaderId);
+    console.log('Controller - Update result:', result);
+    return result;
   }
 
   // Delete team
-  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
+  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
   @Delete(':id')
   async remove(
     @Param('id') id: number,
@@ -85,15 +100,26 @@ export class TeamsController {
     return this.teamsService.addMember(Number(id), dto.playerId, leaderId);
   }
 
-  // Remove member
-  @UseGuards(JwtAuthGuard, RolesGuard, LeaderGuard)
+  // Remove member (Admin/Leader only)
+  @UseGuards(JwtAuthGuard, LeaderGuard, AdminGuard)
   @Delete(':id/remove-member')
   async removeMember(
     @Param('id') id: number,
     @Body() dto: AddMemberDto,
     @Req() req: RequestWithUser,
   ) {
-    const leaderId = req.user.id;
-    return this.teamsService.removeMember(Number(id), dto.playerId, leaderId);
+    const userId = req.user.id;
+    return this.teamsService.removeMember(Number(id), dto.playerId, userId);
+  }
+
+  // Leave team (User can leave their own team)
+  @UseGuards(JwtAuthGuard, UserGuard)
+  @Post(':id/leave-team')
+  async leaveTeam(
+    @Param('id') id: number,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user.id;
+    return this.teamsService.leaveTeam(Number(id), userId);
   }
 }

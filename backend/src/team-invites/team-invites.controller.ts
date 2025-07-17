@@ -22,7 +22,10 @@ export class TeamInvitesController {
   @Get()
   async myInvites(@Req() req) {
     const playerId = req.user.player?.id;
-    if (!playerId) throw new Error('Không tìm thấy player profile');
+    if (!playerId) {
+      // Trả về empty array thay vì throw error để tránh lỗi 500 cho leader
+      return [];
+    }
     return this.invitesService.findInvitesForPlayer(playerId);
   }
 
