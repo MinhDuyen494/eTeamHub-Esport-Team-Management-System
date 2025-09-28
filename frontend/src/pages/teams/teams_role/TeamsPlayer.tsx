@@ -11,6 +11,7 @@ import { teamsApi } from '../../../api/teams.api';
 import { getTeamInvites, acceptTeamInvite, rejectTeamInvite } from '../../../api/team-invites.api';
 import { leaveTeam } from '../../../api/teams.api';
 import { getProfile } from '../../../api/users.api';
+import { getMyAttendances, checkInAttendance, rsvpAttendance } from '../../../api/attendance.api';
 
 const { Title, Text } = Typography;
 
@@ -18,6 +19,29 @@ const TeamsPlayer: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const playerId = user?.id;
   const role = user?.role?.name;
+
+  // State cho attendance
+  const [latestAttendance, setLatestAttendance] = useState<any>(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  // Lấy attendance gần nhất của team hiện tại
+  const fetchAttendance = async () => {
+    try {
+      setAttendanceLoading(true);
+      const attendances = await getMyAttendances();
+      console.log('Attendance API trả về:', attendances);
+      // Lọc attendance của sự kiện đang diễn ra (startTime <= now <= endTime)
+      const now = new Date();
+      const current = (attendances || []).find((a: any) => {
+        const start = a.event?.startTime ? new Date(a.event.startTime) : null;
+        const end = a.event?.endTime ? new Date(a.event.endTime) : null;
+        return start && end && start <= now && now <= end;
+      });
+      setLatestAttendance(current || null);
+      setAttendanceLoading(false);
+    } catch (e) {
+      setAttendanceLoading(false);
+    }
+  };
 
   if (role !== 'player') {
     return <Empty description="Bạn không có quyền truy cập trang này." style={{ marginTop: 100 }} />;
@@ -65,6 +89,85 @@ const TeamsPlayer: React.FC = () => {
     syncUserProfile();
     fetchPlayerData();
   }, [playerId]);
+
+  // Fetch attendance khi có team hiện tại
+  useEffect(() => {
+    if (playerTeams?.currentTeam?.id) {
+      fetchAttendance();
+    } else {
+      setLatestAttendance(null);
+    }
+    // eslint-disable-next-line
+  }, [playerTeams?.currentTeam?.id]);
+  // Xử lý điểm danh
+  const handleCheckIn = async () => {
+    if (!latestAttendance) return;
+    try {
+      setAttendanceLoading(true);
+      await rsvpAttendance(latestAttendance.id, { status: 'accepted' });
+      notification.success({ message: 'Điểm danh thành công!' });
+      // Đánh dấu flag để dashboard refetch
+      localStorage.setItem('eteamhub_attendance_success', '1');
+      fetchAttendance();
+    } catch {
+      notification.error({ message: 'Điểm danh thất bại!' });
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  // Xử lý từ chối điểm danh
+  const handleAbsent = async () => {
+    if (!latestAttendance) return;
+    try {
+      setAttendanceLoading(true);
+      await rsvpAttendance(latestAttendance.id, { status: 'absent' });
+      notification.success({ message: 'Bạn đã từ chối điểm danh.' });
+  fetchAttendance();
+    } catch {
+      notification.error({ message: 'Thao tác thất bại!' });
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+  // Block điểm danh sự kiện cho player
+  const renderAttendanceBlock = () => {
+    if (!playerTeams?.currentTeam) return null;
+    if (attendanceLoading) return <Spin style={{ marginBottom: 16 }} />;
+    if (!latestAttendance) return (
+      <Card style={{ marginBottom: 24 }} title={<Space><CheckOutlined /> Điểm danh sự kiện</Space>}>
+        <Text type="secondary">Không có sự kiện cần điểm danh.</Text>
+      </Card>
+    );
+
+    // Kiểm tra trạng thái điểm danh của player
+    const myStatus = latestAttendance?.status;
+    if (myStatus === 'accepted' || myStatus === 'present') {
+      return null;
+    }
+    let statusText = 'Chờ điểm danh';
+    let statusColor = 'orange';
+    if (myStatus === 'absent') {
+      statusText = 'Đã từ chối';
+      statusColor = 'red';
+    }
+
+    return (
+      <Card style={{ marginBottom: 24 }} title={<Space><CheckOutlined /> Điểm danh sự kiện</Space>}>
+        <div>
+          <Text strong>Sự kiện:</Text> {latestAttendance.event?.name || latestAttendance.event?.title || 'Không rõ'}<br />
+          <Text strong>Thời gian:</Text> {latestAttendance.event?.startTime ? new Date(latestAttendance.event.startTime).toLocaleString() : '---'}<br />
+          <Text strong>Trạng thái của bạn:</Text> <Tag color={statusColor}>{statusText}</Tag>
+        </div>
+        {myStatus !== 'absent' && (
+          <Space style={{ marginTop: 16 }}>
+            <Button type="primary" icon={<CheckOutlined />} loading={attendanceLoading} onClick={handleCheckIn}>Điểm danh</Button>
+            <Button danger icon={<CloseOutlined />} loading={attendanceLoading} onClick={handleAbsent}>Từ chối</Button>
+          </Space>
+        )}
+      </Card>
+    );
+  };
 
   // Rời team
   const handleLeaveTeam = async () => {
@@ -308,6 +411,7 @@ const TeamsPlayer: React.FC = () => {
           {playerTeams?.currentTeam ? (
             <>
               {renderCurrentTeam()}
+              {renderAttendanceBlock()}
               {renderCurrentTeamMembers()}
             </>
           ) : (
@@ -317,10 +421,8 @@ const TeamsPlayer: React.FC = () => {
             </>
           )}
         </Col>
-        
         <Col xs={24} md={8}>
           {renderTeamInvites()}
-          
           {/* Thống kê nhanh */}
           <Card
             title="Thống kê cá nhân"
